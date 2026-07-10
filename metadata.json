@@ -1,0 +1,6 @@
+{
+  "name": "FSC GROUP WEBSITE (DEMO)",
+  "description": "An interactive organizational status board and dashboard for FSC Group.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

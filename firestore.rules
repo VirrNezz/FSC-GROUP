@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. Aturan untuk koleksi groups
+    match /groups/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        (request.auth.token.email == 'ochalopha@gmail.com' || request.auth.token.email == 'furrsocietyclan@gmail.com');
+    }
+    
+    // 2. Aturan untuk koleksi admins
+    match /admins/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        (request.auth.token.email == 'ochalopha@gmail.com' || request.auth.token.email == 'furrsocietyclan@gmail.com');
+    }
+  }
+}
