@@ -74,7 +74,7 @@ export const adminsData = [
 ];
 
 export const faqs = [
-  { question: "What is FSG?", answer: "Furry Society Group adalah sebuah komunitas yang menjadi wadah bagi para penggemar furry untuk berkumpul, berbagi karya, menjalin pertemanan, serta mengembangkan kreativitas. Komunitas ini menjunjung tinggi rasa saling menghormati, inklusivitas, dan kolaborasi, sehingga setiap anggota dapat mengekspresikan diri dalam lingkungan yang positif, aman, dan suportif" },
+  { question: "What is FSG?", answer: "The Furry Society Group is a community that serves as a hub for furry enthusiasts to gather, share their work, build friendships, and foster creativity. The community upholds mutual respect, inclusivity, and collaboration, enabling every member to express themselves within a positive, safe, and supportive environment." },
   { question: "How do I join a specific group?", answer: "Navigate to the specific group's page from the home screen and click the 'Join' link if the status is OPEN." },
   { question: "Can I be in multiple groups?", answer: "Yes, provided you meet the requirements and can actively participate in each." },
   { question: "Who do I contact for website issues?", answer: "Please visit the Admin page and reach out to one of our developers or moderators via their provided social links." }
