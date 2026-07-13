@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
+import { Translate } from '../App'; // <-- 1. IMPORT TRANSLATE SUPAYA NAVBAR BISA BERUBAH BAHASA
 
 const links = [
   { name: 'Home', path: '/', gradient: 'from-blue-400 via-blue-200 to-white' },
@@ -18,7 +19,6 @@ export function Navigation() {
   const location = useLocation();
   const { user, loginWithGoogle, logout } = useAuth();
 
-  // Determine button color based on background (roughly)
   const isDarkBg = ['/', '/group/fc', '/group/2ft', '/admin'].includes(location.pathname);
   const iconColor = isOpen ? 'text-white' : (isDarkBg ? 'text-white' : 'text-slate-900');
 
@@ -35,8 +35,9 @@ export function Navigation() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            // SOLUSI: Mengubah 150vh menjadi 150vmax agar radius lingkaran meluas sempurna menutupi laptop/PC layar lebar
             initial={{ clipPath: 'circle(0px at calc(100% - 44px) 44px)' }}
-            animate={{ clipPath: 'circle(150vh at calc(100% - 44px) 44px)' }}
+            animate={{ clipPath: 'circle(150vmax at calc(100% - 44px) 44px)' }}
             exit={{ 
               clipPath: 'circle(0px at calc(100% - 44px) 44px)',
               transition: { delay: 0.3, type: 'spring', stiffness: 400, damping: 40 }
@@ -67,7 +68,8 @@ export function Navigation() {
                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter relative group block hover:scale-105 transition-transform duration-300"
                   >
                     <span className={cn("bg-clip-text text-transparent bg-gradient-to-r transition-all duration-300", link.gradient, location.pathname !== link.path && "opacity-70 group-hover:opacity-100")}>
-                      {link.name}
+                      {/* 2. BUNGKUS NAMA LINK DENGAN COMPONENT TRANSLATE */}
+                      <Translate text={link.name} />
                     </span>
                     {location.pathname === link.path && (
                       <motion.span 
@@ -96,7 +98,7 @@ export function Navigation() {
                   className="flex items-center gap-2 hover:text-white transition-colors"
                 >
                   <LogOut size={16} />
-                  <span>Logout ({user.email})</span>
+                  <span><Translate text="Logout" /> ({user.email})</span>
                 </button>
               ) : (
                 <button
@@ -107,7 +109,7 @@ export function Navigation() {
                   className="flex items-center gap-2 hover:text-white transition-colors"
                 >
                   <LogIn size={16} />
-                  <span>Admin Login</span>
+                  <span><Translate text="Admin Login" /></span>
                 </button>
               )}
             </motion.div>
@@ -117,4 +119,3 @@ export function Navigation() {
     </>
   );
 }
-
