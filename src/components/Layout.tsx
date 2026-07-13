@@ -2,9 +2,11 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 import { Navigation } from './Navigation';
+import { useLang } from '../App'; // <-- 1. IMPORT USELANG DARI APP.TSX
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { lang, toggleLang } = useLang(); // <-- 2. AMBIL STATE DAN FUNGSI TOGGLE
 
   const getTheme = (path: string) => {
     if (path.startsWith('/group/fsc')) {
@@ -51,6 +53,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen w-full relative overflow-x-hidden selection:bg-blue-500/30">
+      
+      {/* 3. TOMBOL TOGGLE BAHASA MODERN MELAYANG DI NAVBAR / POJOK ATAS */}
+      <div className="fixed top-6 right-6 z-50 flex items-center gap-2">
+        <button 
+          onClick={toggleLang}
+          className="px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full text-xs font-black tracking-widest text-white hover:bg-white/15 transition-all cursor-pointer active:scale-95 select-none"
+        >
+          {lang === 'en' ? '🌐 EN' : '🌐 ID'}
+        </button>
+      </div>
+
       <AnimatePresence mode="popLayout">
         <motion.div
           key={theme.id}

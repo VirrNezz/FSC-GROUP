@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { groups as staticGroups, faqs } from '../data';
 import { cn } from '../lib/utils';
 import { useGroups } from '../hooks/useGroups';
+import { Translate } from '../App'; // <-- 1. IMPORT TRANSLATE DARI APP.TSX
 
 const iconMap: Record<string, React.ReactNode> = {
   fsc: <Users size={40} className="mb-4 text-blue-500" />,
@@ -28,7 +29,10 @@ export function Home() {
         >
           <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 mb-6 md:mb-8 backdrop-blur-md">
             <Sparkles size={16} className="mr-2" />
-            <span className="text-xs sm:text-sm font-semibold uppercase tracking-wider">Welcome to the Community</span>
+            <span className="text-xs sm:text-sm font-semibold uppercase tracking-wider">
+              {/* 2. CUKUP BUNGKUS DENGAN <Translate text="..." /> */}
+              <Translate text="Welcome to the Community" />
+            </span>
           </div>
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl font-extrabold tracking-tighter leading-[1.1] md:leading-[1] mb-6 md:mb-8">
             FSG <br />
@@ -37,7 +41,7 @@ export function Home() {
             </span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-zinc-400 max-w-3xl leading-relaxed font-light">
-            A collaborative network of specialized communities. Explore our groups, join the conversation, and find your place.
+            <Translate text="A collaborative network of specialized communities. Explore our groups, join the conversation, and find your place." />
           </p>
         </motion.div>
       </section>
@@ -61,8 +65,12 @@ export function Home() {
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center mb-4 md:mb-6">
                 {item.icon}
               </div>
-              <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3">{item.title}</h3>
-              <p className="text-sm md:text-base text-zinc-400 leading-relaxed">{item.desc}</p>
+              <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3">
+                <Translate text={item.title} />
+              </h3>
+              <p className="text-sm md:text-base text-zinc-400 leading-relaxed">
+                <Translate text={item.desc} />
+              </p>
             </motion.div>
           ))}
         </div>
@@ -77,7 +85,9 @@ export function Home() {
           className="flex flex-col gap-8 md:gap-12"
         >
           <div className="flex flex-col gap-3 md:gap-4">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">Our Groups</h2>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
+              <Translate text="Our Groups" />
+            </h2>
             <div className="h-1 w-16 md:w-24 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"></div>
           </div>
           
@@ -100,13 +110,16 @@ export function Home() {
                   </div>
                 </div>
                 <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold mb-2 md:mb-3">{group.name}</h3>
-                <p className="text-sm md:text-base lg:text-lg text-zinc-400 mb-8 md:mb-10 flex-1 leading-relaxed line-clamp-3">{group.description}</p>
+                <p className="text-sm md:text-base lg:text-lg text-zinc-400 mb-8 md:mb-10 flex-1 leading-relaxed line-clamp-3">
+                  {/* Karena deskripsi grup ditarik dari data eksternal, kita juga bisa langsung bungkus datanya di sini */}
+                  <Translate text={group.description} />
+                </p>
                 
                 <Link
                   to={`/group/${group.id}`}
                   className="inline-flex items-center text-xs sm:text-sm font-bold tracking-widest uppercase text-blue-400 group-hover:text-blue-300 transition-colors bg-blue-500/10 px-5 md:px-6 py-2 md:py-3 rounded-full self-start"
                 >
-                  Go to page
+                  <Translate text="Go to page" />
                   <motion.span
                     className="ml-2 inline-block"
                     initial={{ x: 0 }}
@@ -131,7 +144,9 @@ export function Home() {
         >
           <div className="text-center">
             <h2 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4 md:mb-6">FAQ</h2>
-            <p className="text-lg md:text-xl text-zinc-400">Common questions about our communities.</p>
+            <p className="text-lg md:text-xl text-zinc-400">
+              <Translate text="Common questions about our communities." />
+            </p>
           </div>
 
           <div className="flex flex-col gap-4 md:gap-6">
@@ -160,7 +175,9 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex justify-between items-center p-6 md:p-8 text-left hover:bg-white/5 transition-colors"
       >
-        <span className="font-bold text-lg md:text-xl pr-4">{question}</span>
+        <span className="font-bold text-lg md:text-xl pr-4">
+          <Translate text={question} />
+        </span>
         <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ type: "spring", stiffness: 300 }}>
           <ChevronDown className="w-5 h-5 md:w-6 md:h-6 text-zinc-500" />
         </motion.div>
@@ -172,7 +189,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
         className="overflow-hidden"
       >
         <p className="p-6 pt-0 md:p-8 md:pt-0 text-zinc-400 leading-relaxed text-base md:text-lg">
-          {answer}
+          <Translate text={answer} />
         </p>
       </motion.div>
     </motion.div>
