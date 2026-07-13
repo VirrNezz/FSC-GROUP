@@ -5,20 +5,19 @@ import { Instagram, Send, X, Shield, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
 import { AdminPanel } from '../components/AdminPanel';
+import { Translate } from '../App'; // <-- 1. IMPORT TRANSLATE DARI APP.TSX
 
 export function Admin() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'roster' | 'dashboard'>('roster');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Set default tab to dashboard if user is an admin
   useEffect(() => {
     if (user && isAdmin) {
       setActiveTab('dashboard');
     }
   }, [user, isAdmin]);
 
-  // Safe Loading State to prevent Blank Screen during Firebase Authentication initialize
   if (authLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] text-white">
@@ -28,7 +27,7 @@ export function Admin() {
           className="mb-4 w-10 h-10 border-4 border-t-blue-500 border-r-transparent border-b-indigo-500 border-l-transparent rounded-full"
         />
         <p className="text-sm font-mono text-zinc-400 uppercase tracking-widest animate-pulse">
-          Verifying security privileges...
+          <Translate text="Verifying security privileges..." /> {/* <-- BUNGKUS KATA LOADING */}
         </p>
       </div>
     );
@@ -36,34 +35,28 @@ export function Admin() {
 
   const selectedAdmin = adminsData.find(a => a.id === selectedId);
 
-  // Render the dedicated AdminPanel component if authenticated and active tab is dashboard
   if (user && isAdmin && activeTab === 'dashboard') {
     return (
       <div className="flex-1 flex flex-col">
-        {/* Tab Switcher for Admin View */}
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-12 flex justify-start z-20">
           <div className="flex p-1 bg-zinc-900/80 border border-white/10 rounded-2xl backdrop-blur-md">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={cn(
                 "px-4 py-2.5 rounded-xl text-xs font-mono tracking-wider uppercase font-bold transition-all flex items-center gap-2",
-                activeTab === 'dashboard'
-                  ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                  : "text-zinc-400 hover:text-white"
+                activeTab === 'dashboard' ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]" : "text-zinc-400 hover:text-white"
               )}
             >
-              <Shield size={14} /> Control Panel
+              <Shield size={14} /> <Translate text="Control Panel" />
             </button>
             <button
               onClick={() => setActiveTab('roster')}
               className={cn(
                 "px-4 py-2.5 rounded-xl text-xs font-mono tracking-wider uppercase font-bold transition-all flex items-center gap-2",
-                activeTab === 'roster'
-                  ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                  : "text-zinc-400 hover:text-white"
+                activeTab === 'roster' ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]" : "text-zinc-400 hover:text-white"
               )}
             >
-              <Users size={14} /> View Roster
+              <Users size={14} /> <Translate text="View Roster" />
             </button>
           </div>
         </div>
@@ -74,7 +67,6 @@ export function Admin() {
 
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 flex flex-col gap-12 md:gap-16">
-      {/* Tab Switcher for Admin View inside Public View */}
       {user && isAdmin && (
         <div className="flex justify-start z-20 -mb-4">
           <div className="flex p-1 bg-zinc-900/80 border border-white/10 rounded-2xl backdrop-blur-md">
@@ -82,23 +74,19 @@ export function Admin() {
               onClick={() => setActiveTab('dashboard')}
               className={cn(
                 "px-4 py-2.5 rounded-xl text-xs font-mono tracking-wider uppercase font-bold transition-all flex items-center gap-2",
-                activeTab === 'dashboard'
-                  ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                  : "text-zinc-400 hover:text-white"
+                activeTab === 'dashboard' ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]" : "text-zinc-400 hover:text-white"
               )}
             >
-              <Shield size={14} /> Control Panel
+              <Shield size={14} /> <Translate text="Control Panel" />
             </button>
             <button
               onClick={() => setActiveTab('roster')}
               className={cn(
                 "px-4 py-2.5 rounded-xl text-xs font-mono tracking-wider uppercase font-bold transition-all flex items-center gap-2",
-                activeTab === 'roster'
-                  ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                  : "text-zinc-400 hover:text-white"
+                activeTab === 'roster' ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]" : "text-zinc-400 hover:text-white"
               )}
             >
-              <Users size={14} /> View Roster
+              <Users size={14} /> <Translate text="View Roster" />
             </button>
           </div>
         </div>
@@ -109,9 +97,11 @@ export function Admin() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-3xl"
       >
-        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-4 md:mb-6">Administrators</h1>
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-4 md:mb-6">
+          <Translate text="Administrators" />
+        </h1>
         <p className="text-base sm:text-lg md:text-xl text-zinc-400">
-          The team behind FSG. Click on a member to view details or reach out for support and suggestions.
+          <Translate text="The team behind FSG. Click on a member to view details or reach out for support and suggestions." />
         </p>
       </motion.header>
 
@@ -128,7 +118,9 @@ export function Admin() {
             </motion.div>
             <motion.div layoutId={`content-${admin.id}`} className="p-5 md:p-6">
               <h3 className="text-lg md:text-xl font-bold">{admin.name}</h3>
-              <p className="text-sm text-blue-400 mt-1">View Profile →</p>
+              <p className="text-sm text-blue-400 mt-1">
+                <Translate text="View Profile →" />
+              </p>
             </motion.div>
           </motion.div>
         ))}
@@ -163,11 +155,14 @@ export function Admin() {
                 <motion.div layoutId={`content-${selectedAdmin.id}`} className="p-6 md:p-10 flex flex-col justify-center w-full md:w-3/5">
                   <h3 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">{selectedAdmin.name}</h3>
                   <p className="text-sm md:text-base text-zinc-400 leading-relaxed mb-6 md:mb-8">
-                    {selectedAdmin.bio}
+                    {/* Mengkonversi deskripsi biodata dinamis ke Indonesia */}
+                    <Translate text={selectedAdmin.bio} />
                   </p>
                   
                   <div className="flex flex-col gap-3 md:gap-4 mt-auto md:mt-0">
-                    <p className="text-xs md:text-sm font-semibold text-zinc-500 uppercase tracking-widest">Contact</p>
+                    <p className="text-xs md:text-sm font-semibold text-zinc-500 uppercase tracking-widest">
+                      <Translate text="Contact" />
+                    </p>
                     <div className="flex flex-wrap gap-3 md:gap-4">
                       {selectedAdmin.socials.ig && (
                         <a href={selectedAdmin.socials.ig} target="_blank" rel="noreferrer" className="p-3 md:p-4 bg-white/5 hover:bg-blue-600 hover:text-white rounded-full transition-colors border border-white/10 flex items-center justify-center">
@@ -177,11 +172,6 @@ export function Admin() {
                       {selectedAdmin.socials.telegram && (
                         <a href={selectedAdmin.socials.telegram} target="_blank" rel="noreferrer" className="p-3 md:p-4 bg-white/5 hover:bg-blue-500 hover:text-white rounded-full transition-colors border border-white/10 flex items-center justify-center">
                           <Send className="w-5 h-5" />
-                        </a>
-                      )}
-                      {(selectedAdmin.socials as any).tt && (
-                        <a href={(selectedAdmin.socials as any).tt} target="_blank" rel="noreferrer" className="px-5 md:px-6 py-3 md:py-4 text-sm md:text-base font-bold bg-white/5 hover:bg-white hover:text-black rounded-full transition-colors border border-white/10 flex items-center justify-center">
-                          TikTok
                         </a>
                       )}
                     </div>

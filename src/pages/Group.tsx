@@ -6,6 +6,7 @@ import { cn } from '../lib/utils';
 import { useGroups, GroupStatus } from '../hooks/useGroups';
 import { useAuth } from '../hooks/useAuth';
 import { useState } from 'react';
+import { Translate } from '../App'; // <-- 1. IMPORT TRANSLATE DARI APP.TSX
 
 export function Group() {
   const { id } = useParams<{ id: string }>();
@@ -34,13 +35,9 @@ export function Group() {
     setIsEditing(false);
   };
 
-  // All pages now use a dark theme to match the homepage
   const cardBg = 'bg-white/5 border-white/10';
   const textMuted = 'text-slate-400';
-  const statusColor = group.status === 'OPEN' 
-    ? 'bg-green-500/20 text-green-400'
-    : 'bg-red-500/20 text-red-400';
-  
+  const statusColor = group.status === 'OPEN' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400';
   const buttonStyle = 'bg-white text-black hover:bg-gray-200';
 
   return (
@@ -70,7 +67,7 @@ export function Group() {
           <div className="mb-8 p-6 bg-white/5 border border-white/20 rounded-2xl backdrop-blur-md">
             <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-bold mb-2 text-white">Status</label>
+                <label className="block text-sm font-bold mb-2 text-white"><Translate text="Status" /></label>
                 <select 
                   value={editStatus} 
                   onChange={(e) => setEditStatus(e.target.value as GroupStatus)}
@@ -92,10 +89,10 @@ export function Group() {
               </div>
               <div className="flex items-center gap-3 mt-2">
                 <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold transition-colors">
-                  <Save size={16} /> Save Changes
+                  <Save size={16} /> <Translate text="Save Changes" />
                 </button>
                 <button onClick={() => setIsEditing(false)} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl font-bold transition-colors">
-                  <X size={16} /> Cancel
+                  <X size={16} /> <Translate text="Cancel" />
                 </button>
               </div>
             </div>
@@ -103,10 +100,10 @@ export function Group() {
         )}
 
         <p className={cn("text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight mb-6 md:mb-8 opacity-90", group.themeColors.accent ? `text-[${group.themeColors.accent}]` : '')}>
-          {group.fullName}
+          <Translate text={group.fullName} />
         </p>
         <p className={cn("text-base sm:text-lg md:text-xl lg:text-2xl leading-relaxed max-w-3xl font-light", textMuted)}>
-          {group.description}
+          <Translate text={group.description} />
         </p>
       </motion.header>
 
@@ -128,8 +125,12 @@ export function Group() {
             <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center mb-4 md:mb-6 bg-white/10 text-white")}>
               {item.icon}
             </div>
-            <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3">{item.title}</h3>
-            <p className={cn("leading-relaxed text-sm md:text-base", textMuted)}>{item.desc}</p>
+            <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3">
+              <Translate text={item.title} />
+            </h3>
+            <p className={cn("leading-relaxed text-sm md:text-base", textMuted)}>
+              <Translate text={item.desc} />
+            </p>
           </motion.div>
         ))}
       </section>
@@ -142,8 +143,10 @@ export function Group() {
           viewport={{ once: true }}
           className={cn("p-8 md:p-12 rounded-[2rem] md:rounded-[2.5rem] backdrop-blur-xl border", cardBg)}
         >
-          <h3 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Vision</h3>
-          <p className={cn("text-base md:text-lg leading-relaxed", textMuted)}>{group.vision}</p>
+          <h3 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6"><Translate text="Vision" /></h3>
+          <p className={cn("text-base md:text-lg leading-relaxed", textMuted)}>
+            <Translate text={group.vision} />
+          </p>
         </motion.div>
         
         <motion.div 
@@ -153,8 +156,10 @@ export function Group() {
           transition={{ delay: 0.2 }}
           className={cn("p-8 md:p-12 rounded-[2rem] md:rounded-[2.5rem] backdrop-blur-xl border", cardBg)}
         >
-          <h3 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Mission</h3>
-          <p className={cn("text-base md:text-lg leading-relaxed", textMuted)}>{group.mission}</p>
+          <h3 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6"><Translate text="Mission" /></h3>
+          <p className={cn("text-base md:text-lg leading-relaxed", textMuted)}>
+            <Translate text={group.mission} />
+          </p>
         </motion.div>
       </section>
 
@@ -166,7 +171,7 @@ export function Group() {
           viewport={{ once: true }}
           className="text-3xl md:text-4xl font-bold mb-8 md:mb-12"
         >
-          Leadership
+          <Translate text="Leadership" />
         </motion.h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {group.staff.map((member, i) => (
@@ -179,14 +184,12 @@ export function Group() {
               className={cn("rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 border flex flex-col items-center text-center backdrop-blur-xl transition-all hover:scale-105", cardBg)}
             >
               <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden mb-6 md:mb-8 border-4 border-black/10 dark:border-white/20 shadow-xl">
-                <img 
-                  src={member.image} 
-                  alt={member.name} 
-                  className="w-full h-full object-cover"
-                />
+                <img src={member.image} alt={member.name} className="w-full h-full object-cover" />
               </div>
               <h4 className="text-2xl md:text-3xl font-extrabold mb-1 md:mb-2">{member.name}</h4>
-              <p className={cn("text-xs md:text-sm font-bold tracking-widest uppercase", textMuted)}>{member.role}</p>
+              <p className={cn("text-xs md:text-sm font-bold tracking-widest uppercase", textMuted)}>
+                <Translate text={member.role} />
+              </p>
             </motion.div>
           ))}
         </div>
@@ -200,11 +203,11 @@ export function Group() {
         className="flex justify-center pb-16 md:pb-20"
       >
         <div className={cn("text-center max-w-3xl w-full p-8 md:p-16 rounded-[2rem] md:rounded-[3rem] border backdrop-blur-xl shadow-2xl", cardBg)}>
-          <h2 className="text-3xl md:text-5xl font-extrabold mb-4 md:mb-8">Ready to get involved?</h2>
+          <h2 className="text-3xl md:text-5xl font-extrabold mb-4 md:mb-8">
+            <Translate text="Ready to get involved?" />
+          </h2>
           <p className={cn("mb-8 md:mb-12 text-base md:text-xl font-light", textMuted)}>
-            {group.status === 'OPEN' 
-              ? "We are currently accepting new members. Join our selection group to start the process." 
-              : "Applications are currently closed. Please check back later."}
+            <Translate text={group.status === 'OPEN' ? "We are currently accepting new members. Join our selection group to start the process." : "Applications are currently closed. Please check back later."} />
           </p>
           <a
             href={group.status === 'OPEN' ? group.joinLink : '#'}
@@ -214,7 +217,7 @@ export function Group() {
             )}
             onClick={(e) => group.status !== 'OPEN' && e.preventDefault()}
           >
-            Join Selection Group
+            <Translate text="Join Selection Group" />
             {group.status === 'OPEN' && <ExternalLink className="w-5 h-5 md:w-6 md:h-6" />}
           </a>
         </div>
