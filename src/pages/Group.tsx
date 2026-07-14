@@ -1,12 +1,12 @@
 import { useParams, Navigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { groups as staticGroups } from '../data';
-import { ExternalLink, Shield, Globe, Star, Edit2, Save, X } from 'lucide-react';
+import { ExternalLink, Shield, Globe, Star, Edit2, Save, X, AlertTriangle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useGroups, GroupStatus } from '../hooks/useGroups';
 import { useAuth } from '../hooks/useAuth';
-import { useState } from 'react';
-import { Translate } from '../App'; // <-- 1. IMPORT TRANSLATE DARI APP.TSX
+import { useState, useEffect } from 'react'; // <-- Tambahkan useEffect di sini
+import { Translate } from '../App';
 
 export function Group() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +16,21 @@ export function Group() {
   const [isEditing, setIsEditing] = useState(false);
   const [editStatus, setEditStatus] = useState<GroupStatus>('OPEN');
   const [editJoinLink, setEditJoinLink] = useState('');
+  
+  // STATE UNTUK KONTROL POP-UP DAN COUNTDOWN WAKTU
+  const [showRulesAlert, setShowRulesAlert] = useState(false);
+  const [countdown, setCountdown] = useState(5); // Waktu tunggu 5 detik
+
+  // LOGIKA HITUNG MUNDUR (COUNTDOWN EFFECT)
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showRulesAlert && countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [showRulesAlert, countdown]);
 
   if (!staticGroup) return <Navigate to="/" replace />;
 
@@ -33,6 +48,22 @@ export function Group() {
   const handleSave = async () => {
     await updateGroup(group.id, { status: editStatus, joinLink: editJoinLink });
     setIsEditing(false);
+  };
+
+  // KETIKA TOMBOL JOIN AWAL DIKLIK
+  const handleJoinClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (group.status === 'OPEN') {
+      setCountdown(5); // Reset waktu kembali ke 5 detik setiap pop-up dibuka
+      setShowRulesAlert(true);
+    }
+  };
+
+  // KETIKA TOMBOL DI POP-UP DIKLIK SETELAH WAKTU HABIS
+  const confirmJoin = () => {
+    if (countdown > 0) return; // Proteksi tambahan: jika belum selesai, block/jangan eksekusi
+    setShowRulesAlert(false);
+    window.open(group.joinLink, '_blank', 'noopener,noreferrer');
   };
 
   const cardBg = 'bg-white/5 border-white/10';
@@ -215,13 +246,77 @@ export function Group() {
               "inline-flex items-center gap-2 md:gap-3 px-6 md:px-10 py-3 md:py-5 rounded-full font-bold text-base md:text-xl transition-all",
               group.status === 'OPEN' ? cn(buttonStyle, "hover:scale-105") : 'opacity-50 cursor-not-allowed bg-gray-500 text-white'
             )}
-            onClick={(e) => group.status !== 'OPEN' && e.preventDefault()}
+            onClick={handleJoinClick}
           >
             <Translate text="Join Selection Group" />
             {group.status === 'OPEN' && <ExternalLink className="w-5 h-5 md:w-6 md:h-6" />}
           </a>
         </div>
       </motion.section>
+
+      {/* MODAL ALERT PERATURAN DENGAN SISTEM COUNTDOWN TIMEOUT */}
+      <AnimatePresence>
+        {showRulesAlert && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 cursor-pointer"
+              onClick={() => setShowRulesAlert(false)}
+            />
+            
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="bg-zinc-950/90 backdrop-blur-2xl border border-white/15 w-full max-w-md p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] pointer-events-auto shadow-2xl text-center flex flex-col items-center"
+              >
+                <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center mb-4">
+                  <AlertTriangle size={24} className={cn(countdown > 0 && "animate-pulse")} />
+                </div>
+                
+                <h3 className="text-xl md:text-2xl font-black text-white mb-2">
+                  <Translate text="Community Notice" />
+                </h3>
+                
+                <p className="text-sm md:text-base text-zinc-400 leading-relaxed mb-6">
+                  <Translate text="Please ensure you have read and thoroughly understood our community rules and guidelines before entering the selection group. Failure to follow them may result in removal." />
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
+                  <button
+                    onClick={() => setShowRulesAlert(false)}
+                    className="px-5 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors cursor-pointer"
+                  >
+                    <Translate text="Cancel" />
+                  </button>
+                  
+                  <button
+                    onClick={confirmJoin}
+                    disabled={countdown > 0} // Mengunci tombol selama waktu belum 0
+                    className={cn(
+                      "px-5 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase transition-all select-none",
+                      countdown > 0 
+                        ? "bg-zinc-800 text-zinc-500 border border-white/5 cursor-not-allowed opacity-60" 
+                        : "bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] cursor-pointer active:scale-95"
+                    )}
+                  >
+                    {countdown > 0 ? (
+                      <span>
+                        <Translate text="Wait" /> {countdown}s
+                      </span>
+                    ) : (
+                      <Translate text="I Understand & Proceed" />
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
