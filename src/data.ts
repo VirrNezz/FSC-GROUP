@@ -4,8 +4,8 @@ export const groups = {
     name: "FSC",
     fullName: "Furry Society Clan",
     description: "FSC is a welcoming space for all members of the community. We focus on creativity, art, and building lasting friendships through shared interests and collaborative projects.",
-    vision: "To be the most inclusive and inspiring hub for furry enthusiasts worldwide.",
-    mission: "Provide a safe, engaging, and supportive environment where individuals can express themselves freely and connect with like-minded peers.",
+    vision: "to develop the potential of furries (creators in particular) so that they are always enthusiastic about creating content",
+    mission: "building the furry identity to get to know furries more closely",
     themeColors: { bg: "#f8fafc", text: "#0f172a", accent: "#475569" }, // putih abu kebiruan
     status: "OPEN",
     joinLink: "#join-fsc",
@@ -26,8 +26,8 @@ export const groups = {
     name: "FC",
     fullName: "Furry Creator",
     description: "The central hub for all things related to the fandom. FC is dedicated to organizing large-scale virtual events, conventions discussions, and providing resources for newcomers.",
-    vision: "To be the central pillar of support and entertainment for the fandom.",
-    mission: "Organize impactful events and provide comprehensive resources to educate, entertain, and unite the community.",
+    vision: "to develop the potential of furries (creators in particular) so that they are always enthusiastic about creating content",
+    mission: "building the furry identity to get to know furries more closely",
     themeColors: { bg: "#020617", text: "#e0f2fe", accent: "#0284c7" }, // Biru dan hitam sapphire
     status: "CLOSED",
     joinLink: "#join-fc",
@@ -61,7 +61,7 @@ export const adminsData = [
     id: "a1",
     name: "kaishii",
     image: "/profiles/kaishii.png",
-    bio: "Owner of FSG. Head of infrastructure and server maintenance. Ensures all community platforms remain stable and secure.",
+    bio: "Owner of the FSG (Furry Society Group) community, lead website designer, and domain sponsor.",
     socials: { ig: "https://instagram.com", telegram: "https://t.me" }
   },
   {

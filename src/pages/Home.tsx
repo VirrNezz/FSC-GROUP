@@ -41,7 +41,7 @@ export function Home() {
             </span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-zinc-400 max-w-3xl leading-relaxed font-light">
-            <Translate text="A collaborative network of specialized communities. Explore our groups, join the conversation, and find your place." />
+            <Translate text="Furry Society: We are Furr, Together We Can!!" />
           </p>
         </motion.div>
       </section>
@@ -51,7 +51,7 @@ export function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {[
             { icon: <Shield size={24} className="text-blue-400"/>, title: "Safe & Inclusive", desc: "Our moderation team ensures a welcoming space free from toxicity, where everyone can express their true selves safely." },
-            { icon: <Globe size={24} className="text-indigo-400"/>, title: "Global Network", desc: "Connect with enthusiasts from around the world. We bridge the gap between cultures and shared passions." },
+            { icon: <Globe size={24} className="text-indigo-400"/>, title: "Indonesian Network", desc: "Connect with enthusiasts from around the indonesia. We bridge the gap between cultures and shared passions." },
             { icon: <Heart size={24} className="text-pink-400"/>, title: "Creative Hub", desc: "From art and design to storytelling and world-building, we support creatives at every step of their journey." }
           ].map((item, i) => (
             <motion.div
