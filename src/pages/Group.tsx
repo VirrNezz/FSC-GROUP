@@ -282,7 +282,21 @@ export function Group() {
                 </h3>
                 
                 <p className="text-sm md:text-base text-zinc-400 leading-relaxed mb-6">
-                  <Translate text="Please ensure you have read and thoroughly understood our community rules and guidelines before entering the selection group. Failure to follow them may result in removal." />
+                  <Translate text="Rules FSC (Harap dibaca!!):
+		- DILARANG MENGIRIM LINK GC LAIN KECUALI PARTNER!!
+		- BUKAN GRUP JB!!
+		- DILARANG SHARE 18+ BAIK APAPUN ITU!! (TERMASUK BERMESRAAN BF/GF)
+		- HARGAI KEPUTUSAN ADMIN!!
+		- SEMUA YANG ADA DI CLAN INI SAMA RATA, TIDAK ADA YG SPESIAL!!
+		- DILARANG SHARE HOAX, SARA, MAUPUN RASIS!!
+		- DILARANG MENGIRIM APAPUN YG BERBAU KARTEL!!
+		- DILARANG RUSUH!!
+		- BERCANDA SEWAJARNYA!!
+		- NO DRAMA, NO CAPER, NO BAPER!!
+		- APABILA MELANGGAR SAMPAI 3x, KICK+BLACKLIST
+		- DILARANG SIDER!! MINIMAL ABSEN NIMBRUNG SEMINGGU SEKALI!!
+		- FONT HP WAJIB BAWAAN DARI HP!!
+		- ADA KELUHAN? PM OWNER 'N ADMIN!!" />
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
