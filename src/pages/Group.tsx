@@ -308,7 +308,7 @@ export function Group() {
                 {/* CONTAINER RULES YANG TERSUSUN RAPI DAN BISA DI-SCROLL */}
                 <div className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-left overflow-y-auto mb-6 space-y-2.5 max-h-[40vh] scrollbar-thin">
                   <div className="text-amber-400 text-xs font-bold uppercase tracking-wider border-b border-white/10 pb-1.5 mb-2">
-                    📜 <Translate text="FSC Rules (Please read!!):" />
+                    📜 <Translate text="FSG Rules (Please read!!):" />
                   </div>
                   {[
                     "DO NOT POST LINKS TO OTHER GROUP CHATS UNLESS THEY ARE PARTNERS!!",
