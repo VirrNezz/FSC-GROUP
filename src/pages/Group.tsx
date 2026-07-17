@@ -138,7 +138,7 @@ export function Group() {
         </p>
       </motion.header>
 
-      {/* DYNAMIC ANNOUNCEMENT KHUSUS GRUP (Cara 1: Melekat pada Data Grup Live) */}
+      {/* DYNAMIC ANNOUNCEMENT KHUSUS GRUP */}
       {group.announcement && (
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
@@ -308,23 +308,23 @@ export function Group() {
                 {/* CONTAINER RULES YANG TERSUSUN RAPI DAN BISA DI-SCROLL */}
                 <div className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-left overflow-y-auto mb-6 space-y-2.5 max-h-[40vh] scrollbar-thin">
                   <div className="text-amber-400 text-xs font-bold uppercase tracking-wider border-b border-white/10 pb-1.5 mb-2">
-                    📜 <Translate text="Rules FSC (Harap dibaca!!):" />
+                    📜 <Translate text="FSC Rules (Please read!!):" />
                   </div>
                   {[
-                    "DILARANG MENGIRIM LINK GC LAIN KECUALI PARTNER!!",
-                    "BUKAN GRUP JB!!",
-                    "DILARANG SHARE 18+ BAIK APAPUN ITU!! (TERMASUK BERMESRAAN BF/GF)",
-                    "HARGAI KEPUTUSAN ADMIN!!",
-                    "SEMUA YANG ADA DI CLAN INI SAMA RATA, TIDAK ADA YG SPESIAL!!",
-                    "DILARANG SHARE HOAX, SARA, MAUPUN RASIS!!",
-                    "DILARANG MENGIRIM APAPUN YG BERBAU KARTEL!!",
-                    "DILARANG RUSUH!!",
-                    "BERCANDA SEWAJARNYA!!",
-                    "NO DRAMA, NO CAPER, NO BAPER!!",
-                    "APABILA MELANGGAR SAMPAI 3x, KICK+BLACKLIST",
-                    "DILARANG SIDER!! MINIMAL ABSEN NIMBRUNG SEMINGGU SEKALI!!",
-                    "FONT HP WAJIB BAWAAN DARI HP!!",
-                    "ADA KELUHAN? PM OWNER 'N ADMIN!!"
+                    "DO NOT POST LINKS TO OTHER GROUP CHATS UNLESS THEY ARE PARTNERS!!",
+                    "THIS IS NOT A BUY/SELL (JB) GROUP!!",
+                    "NO 18+ CONTENT OF ANY KIND!! (INCLUDING BF/GF PDA)",
+                    "RESPECT THE ADMINS' DECISIONS!!",
+                    "EVERYONE IN THIS CLAN IS EQUAL; NO ONE GETS SPECIAL TREATMENT!!",
+                    "NO HOAXES, SARA (HATE SPEECH REGARDING ETHNICITY/RELIGION), OR RACISM!!",
+                    "NO CONTENT RELATED TO CARTELS!!",
+                    "NO DISRUPTIVE BEHAVIOR!!",
+                    "KEEP JOKES REASONABLE!!",
+                    "NO DRAMA, NO ATTENTION-SEEKING, NO GETTING EASILY OFFENDED!!",
+                    "3 VIOLATIONS RESULT IN A KICK + BLACKLIST",
+                    "NO SILENT READERS (SIDER)!! YOU MUST CHECK IN/PARTICIPATE AT LEAST ONCE A WEEK!!",
+                    "PHONE FONT MUST BE THE DEFAULT SYSTEM FONT!!",
+                    "HAVE A COMPLAINT? PM THE OWNER & ADMINS!!"
                   ].map((rule, index) => (
                     <div key={index} className="flex gap-2 text-[11px] text-zinc-300 leading-relaxed items-start">
                       <span className="text-cyan-400 font-bold shrink-0">{index + 1}.</span>
