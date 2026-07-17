@@ -5,7 +5,7 @@ import { ExternalLink, Shield, Globe, Star, Edit2, Save, X, AlertTriangle } from
 import { cn } from '../lib/utils';
 import { useGroups, GroupStatus } from '../hooks/useGroups';
 import { useAuth } from '../hooks/useAuth';
-import { useState, useEffect } from 'react'; // <-- Tambahkan useEffect di sini
+import { useState, useEffect } from 'react';
 import { Translate } from '../App';
 
 export function Group() {
@@ -61,7 +61,7 @@ export function Group() {
 
   // KETIKA TOMBOL DI POP-UP DIKLIK SETELAH WAKTU HABIS
   const confirmJoin = () => {
-    if (countdown > 0) return; // Proteksi tambahan: jika belum selesai, block/jangan eksekusi
+    if (countdown > 0) return; // Proteksi tambahan
     setShowRulesAlert(false);
     window.open(group.joinLink, '_blank', 'noopener,noreferrer');
   };
@@ -137,6 +137,26 @@ export function Group() {
           <Translate text={group.description} />
         </p>
       </motion.header>
+
+      {/* DYNAMIC ANNOUNCEMENT KHUSUS GRUP (Cara 1: Melekat pada Data Grup Live) */}
+      {group.announcement && (
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="p-6 md:p-8 rounded-[1.5rem] bg-amber-500/10 border border-amber-500/20 backdrop-blur-xl shadow-lg shadow-amber-500/5"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <span className="p-2 bg-amber-500/20 text-amber-400 rounded-full animate-pulse text-sm">📢</span>
+            <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider">
+              <Translate text="Group Announcement" />
+            </h3>
+          </div>
+          <p className="text-sm md:text-base text-zinc-300 leading-relaxed font-sans font-medium tracking-wide">
+            <Translate text={group.announcement} />
+          </p>
+        </motion.section>
+      )}
 
       {/* Explanatory Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -271,35 +291,51 @@ export function Group() {
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="bg-zinc-950/90 backdrop-blur-2xl border border-white/15 w-full max-w-md p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] pointer-events-auto shadow-2xl text-center flex flex-col items-center"
+                className="bg-zinc-950/90 backdrop-blur-2xl border border-white/15 w-full max-w-lg p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] pointer-events-auto shadow-2xl text-center flex flex-col items-center max-h-[85vh]"
               >
-                <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center mb-4 shrink-0">
                   <AlertTriangle size={24} className={cn(countdown > 0 && "animate-pulse")} />
                 </div>
                 
-                <h3 className="text-xl md:text-2xl font-black text-white mb-2">
+                <h3 className="text-xl md:text-2xl font-black text-white mb-2 shrink-0">
                   <Translate text="Community Notice" />
                 </h3>
                 
-                <p className="text-sm md:text-base text-zinc-400 leading-relaxed mb-6">
-                  <Translate text="Rules FSC (Harap dibaca!!):
-		<p> - DILARANG MENGIRIM LINK GC LAIN KECUALI PARTNER!!</p>
-		<p> - BUKAN GRUP JB!!</p>
-		<p> - DILARANG SHARE 18+ BAIK APAPUN ITU!! (TERMASUK BERMESRAAN BF/GF)</p>
-		<P> - HARGAI KEPUTUSAN ADMIN!!</p>
-		<p> - SEMUA YANG ADA DI CLAN INI SAMA RATA, TIDAK ADA YG SPESIAL!!</p>
-		<p> - DILARANG SHARE HOAX, SARA, MAUPUN RASIS!!</p>
-		<p> - DILARANG MENGIRIM APAPUN YG BERBAU KARTEL!!</p>
-		<p> - DILARANG RUSUH!!</p>
-		<p> - BERCANDA SEWAJARNYA!!</p>
-		<p> - NO DRAMA, NO CAPER, NO BAPER!!</p>
-		<p> - APABILA MELANGGAR SAMPAI 3x, KICK+BLACKLIST</p>
-		<P> - DILARANG SIDER!! MINIMAL ABSEN NIMBRUNG SEMINGGU SEKALI!!</p>
-		<p> - FONT HP WAJIB BAWAAN DARI HP!!</p>
-		<p> - ADA KELUHAN? PM OWNER 'N ADMIN!!"</p>
+                <p className="text-xs md:text-sm text-zinc-400 leading-relaxed mb-4 shrink-0">
+                  <Translate text="Please ensure you have read and thoroughly understood our community rules and guidelines before entering the selection group. Failure to follow them may result in removal." />
                 </p>
+
+                {/* CONTAINER RULES YANG TERSUSUN RAPI DAN BISA DI-SCROLL */}
+                <div className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-left overflow-y-auto mb-6 space-y-2.5 max-h-[40vh] scrollbar-thin">
+                  <div className="text-amber-400 text-xs font-bold uppercase tracking-wider border-b border-white/10 pb-1.5 mb-2">
+                    📜 <Translate text="Rules FSC (Harap dibaca!!):" />
+                  </div>
+                  {[
+                    "DILARANG MENGIRIM LINK GC LAIN KECUALI PARTNER!!",
+                    "BUKAN GRUP JB!!",
+                    "DILARANG SHARE 18+ BAIK APAPUN ITU!! (TERMASUK BERMESRAAN BF/GF)",
+                    "HARGAI KEPUTUSAN ADMIN!!",
+                    "SEMUA YANG ADA DI CLAN INI SAMA RATA, TIDAK ADA YG SPESIAL!!",
+                    "DILARANG SHARE HOAX, SARA, MAUPUN RASIS!!",
+                    "DILARANG MENGIRIM APAPUN YG BERBAU KARTEL!!",
+                    "DILARANG RUSUH!!",
+                    "BERCANDA SEWAJARNYA!!",
+                    "NO DRAMA, NO CAPER, NO BAPER!!",
+                    "APABILA MELANGGAR SAMPAI 3x, KICK+BLACKLIST",
+                    "DILARANG SIDER!! MINIMAL ABSEN NIMBRUNG SEMINGGU SEKALI!!",
+                    "FONT HP WAJIB BAWAAN DARI HP!!",
+                    "ADA KELUHAN? PM OWNER 'N ADMIN!!"
+                  ].map((rule, index) => (
+                    <div key={index} className="flex gap-2 text-[11px] text-zinc-300 leading-relaxed items-start">
+                      <span className="text-cyan-400 font-bold shrink-0">{index + 1}.</span>
+                      <p className="font-sans font-medium tracking-wide">
+                        <Translate text={rule} />
+                      </p>
+                    </div>
+                  ))}
+                </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
+                <div className="flex flex-col sm:flex-row gap-3 w-full justify-center shrink-0">
                   <button
                     onClick={() => setShowRulesAlert(false)}
                     className="px-5 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors cursor-pointer"
@@ -309,7 +345,7 @@ export function Group() {
                   
                   <button
                     onClick={confirmJoin}
-                    disabled={countdown > 0} // Mengunci tombol selama waktu belum 0
+                    disabled={countdown > 0}
                     className={cn(
                       "px-5 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase transition-all select-none",
                       countdown > 0 
