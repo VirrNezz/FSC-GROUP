@@ -1,15 +1,12 @@
-const response = await fetch('/onesignal-api/notifications', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Basic ${import.meta.env.VITE_ONESIGNAL_REST_API_KEY}`,
-  },
-  body: JSON.stringify({
-    app_id: import.meta.env.VITE_ONESIGNAL_APP_ID,
-    included_segments: ['All'],
-    headings: { en: title },
-    contents: { en: message },
-    data: { category },
-    url: 'https://www.furry-society-group.my.id',
-  }),
-});
+{
+  "rewrites": [
+    {
+      "source": "/onesignal-api/:path*",
+      "destination": "https://onesignal.com/api/v1/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
