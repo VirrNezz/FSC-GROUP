@@ -1,12 +1,41 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // <-- Ditambahkan useEffect
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 import { Navigation } from './Navigation';
-import { useLang } from '../App'; // <-- Mengambil state bahasa global dari App.tsx
+import { useLang } from '../App'; 
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { lang, toggleLang } = useLang(); // <-- Ambil state dan fungsi toggle otomatis
+  const { lang, toggleLang } = useLang(); 
+
+  // --- SCRIPT NOTIFIKASI ONESIGNAL ---
+  useEffect(() => {
+    // 1. Inject tag script SDK OneSignal ke HTML secara dinamis
+    const script = document.createElement('script');
+    script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+    script.defer = true;
+    document.head.appendChild(script);
+
+    // 2. Inisialisasi setelah SDK ter-load
+    script.onload = () => {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "MASUKKAN_APP_ID_ONESIGNAL_KAMU_DISINI", // <-- Ganti pakai App ID dari dashboard OneSignal
+          safari_web_id: "MASUKKAN_SAFARI_ID_JIKA_ADA",  // <-- Opsional, bisa dihapus kalau gak pakai
+          notifyButton: {
+            enable: true, // Memunculkan tombol lonceng otomatis di pojok kanan/kiri bawah
+          },
+        });
+      });
+    };
+
+    // Bersihkan script saat komponen unmount (good practice)
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+  // -------------------------------------
 
   const getTheme = (path: string) => {
     if (path.startsWith('/group/fsc')) {
@@ -54,7 +83,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen w-full relative overflow-x-hidden selection:bg-blue-500/30">
       
-      {/* PERBAIKAN POSISI: Dipindah ke pojok kanan bawah (fixed bottom-6 right-6) agar navigasi atas bebas hambatan */}
       <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2">
         <button 
           onClick={toggleLang}

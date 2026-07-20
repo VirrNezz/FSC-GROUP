@@ -4,6 +4,7 @@
  */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import OneSignal from 'react-onesignal';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Group } from './pages/Group';
@@ -62,6 +63,14 @@ export function Translate({ text }: { text: string }) {
 
 export default function App() {
   const [lang, setLang] = useState<'en' | 'id'>('en');
+
+  // Inisialisasi OneSignal saat aplikasi dibuka
+  useEffect(() => {
+    OneSignal.init({
+      appId: import.meta.env.VITE_ONESIGNAL_APP_ID || '97155492-540b-40ef-b9c7-72d1fed1b193',
+      allowLocalhostAsSecureOrigin: true,
+    });
+  }, []);
 
   const toggleLang = () => {
     setLang((prev) => (prev === 'en' ? 'id' : 'en'));

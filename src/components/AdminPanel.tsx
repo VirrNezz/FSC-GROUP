@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, RefreshCw, CheckCircle, AlertTriangle, Link as LinkIcon, LogOut, LogIn, Lock, Globe } from 'lucide-react';
+import { Shield, RefreshCw, CheckCircle, AlertTriangle, Link as LinkIcon, LogOut, LogIn, Lock, Globe, Bell, Send } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useGroups, GroupStatus } from '../hooks/useGroups';
 import { groups as staticGroups } from '../data';
@@ -15,6 +15,12 @@ export function AdminPanel() {
 
   // Local state for inline input changes so users have an editing buffer before saving
   const [localLinks, setLocalLinks] = useState<Record<string, string>>({});
+
+  // State untuk Broadcast Push Notification OneSignal
+  const [notifCategory, setNotifCategory] = useState('[ANNOUNCEMENT]');
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifMessage, setNotifMessage] = useState('');
+  const [sendingNotif, setSendingNotif] = useState(false);
 
   // Sync live group joinLinks to local state when they load
   useEffect(() => {
@@ -34,6 +40,46 @@ export function AdminPanel() {
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
+
+  // Handle Kirim Broadcast Notifikasi via OneSignal
+  const handleBroadcastNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notifTitle || !notifMessage) return;
+
+    setSendingNotif(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const fullTitle = `${notifCategory} ${notifTitle}`;
+
+    try {
+      const response = await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Authorization": `Basic ${import.meta.env.VITE_ONESIGNAL_REST_API_KEY || ''}`
+        },
+        body: JSON.stringify({
+          app_id: import.meta.env.VITE_ONESIGNAL_APP_ID || '',
+          included_segments: ["All Subscribers"],
+          headings: { en: fullTitle },
+          contents: { en: notifMessage },
+          url: "https://furry-society-group.my.id"
+        })
+      });
+
+      if (!response.ok) throw new Error("Gagal mengirim notifikasi via OneSignal API");
+
+      setSuccessMessage(`🚀 Notifikasi (${notifCategory}) berhasil disebar ke semua user!`);
+      setNotifTitle('');
+      setNotifMessage('');
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(`Broadcast Gagal: ${err?.message || 'Terjadi kesalahan'}`);
+    } finally {
+      setSendingNotif(false);
+    }
+  };
 
   // Cyberpunk Loading State while Auth or Groups are loading
   if (authLoading || groupsLoading) {
@@ -171,6 +217,79 @@ export function AdminPanel() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* BROADCAST PUSH NOTIFICATION SECTION */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-zinc-900/60 backdrop-blur-xl border border-blue-500/20 rounded-[2rem] p-6 sm:p-8 space-y-4 shadow-2xl relative overflow-hidden"
+      >
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500" />
+        <div className="flex items-center gap-2 text-blue-400 font-bold text-sm tracking-wide uppercase font-mono">
+          <Bell size={18} className="animate-pulse" />
+          <span>Broadcast Push Notification</span>
+        </div>
+
+        <form onSubmit={handleBroadcastNotification} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          {/* Dropdown Kategori */}
+          <div className="md:col-span-3 flex flex-col gap-2">
+            <label className="text-xs font-mono text-zinc-400 uppercase">Category</label>
+            <select
+              value={notifCategory}
+              onChange={(e) => setNotifCategory(e.target.value)}
+              className="w-full text-sm bg-zinc-950/80 border border-white/10 focus:border-blue-500 text-white p-3 rounded-xl focus:outline-none transition-colors"
+            >
+              <option value="[ANNOUNCEMENT]">📢 Announcement</option>
+              <option value="[NEW GROUP]">🐾 New Group</option>
+              <option value="[EVENT]">🎉 Event Info</option>
+              <option value="[UPDATE]">⚡ Portal Update</option>
+            </select>
+          </div>
+
+          {/* Input Title */}
+          <div className="md:col-span-4 flex flex-col gap-2">
+            <label className="text-xs font-mono text-zinc-400 uppercase">Title</label>
+            <input
+              type="text"
+              required
+              value={notifTitle}
+              onChange={(e) => setNotifTitle(e.target.value)}
+              placeholder="e.g. Fitur Baru Rilis!"
+              className="w-full text-sm bg-zinc-950/80 border border-white/10 focus:border-blue-500 text-white p-3 rounded-xl focus:outline-none transition-colors"
+            />
+          </div>
+
+          {/* Input Message */}
+          <div className="md:col-span-5 flex flex-col gap-2">
+            <label className="text-xs font-mono text-zinc-400 uppercase">Message Content</label>
+            <input
+              type="text"
+              required
+              value={notifMessage}
+              onChange={(e) => setNotifMessage(e.target.value)}
+              placeholder="Pesan notifikasi..."
+              className="w-full text-sm bg-zinc-950/80 border border-white/10 focus:border-blue-500 text-white p-3 rounded-xl focus:outline-none transition-colors"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <div className="md:col-span-12 flex justify-end">
+            <button
+              type="submit"
+              disabled={sendingNotif}
+              className="w-full md:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase rounded-xl transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {sendingNotif ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Send size={14} /> Send Broadcast
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </motion.div>
 
       {/* Cyberpunk Interactive Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
