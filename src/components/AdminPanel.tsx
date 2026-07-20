@@ -50,11 +50,15 @@ export function AdminPanel() {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const fullTitle = `${notifCategory} ${notifTitle}`;
-    const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
-    const restApiKey = import.meta.env.VITE_ONESIGNAL_REST_API_KEY;
+    // Murni membaca dari Environment Variable (Aman dari block GitHub)
+    const appId = import.meta.env.VITE_ONESIGNAL_APP_ID; 
+    const restApiKey = (import.meta.env.VITE_ONESIGNAL_REST_API_KEY || "").trim();
 
-    // Sanity check jika env belum terset di Vercel
+    // Debugging di Browser Console
+    console.log("[OneSignal Debug] App ID Loaded:", appId ? "YES" : "NO");
+    console.log("[OneSignal Debug] REST API Key Length:", restApiKey ? restApiKey.length : 0);
+
+    // Sanity check jika key/env belum ter-inject oleh Vite/Vercel
     if (!restApiKey || !appId) {
       setErrorMessage("Broadcast Gagal: VITE_ONESIGNAL_REST_API_KEY atau VITE_ONESIGNAL_APP_ID belum di-set di Vercel Environment Variables!");
       setSendingNotif(false);
@@ -62,12 +66,13 @@ export function AdminPanel() {
     }
 
     // Penanganan otomatis format Authorization header
-    const authHeader = restApiKey.startsWith('Key ') || restApiKey.startsWith('Basic ')
-      ? restApiKey
-      : `Basic ${restApiKey.trim()}`;
+    const cleanKey = restApiKey.replace(/^(Basic|Key)\s+/i, '');
+    const authHeader = `Basic ${cleanKey}`;
+
+    const fullTitle = `${notifCategory} ${notifTitle}`;
 
     try {
-      // PANGGUL VIA PROXY VERCEL REWRITE (/onesignal-api/)
+      // PANGGIL VIA PROXY VERCEL REWRITE (/onesignal-api/)
       const response = await fetch("/onesignal-api/notifications", {
         method: "POST",
         headers: {
@@ -92,7 +97,7 @@ export function AdminPanel() {
         throw new Error(errDetail);
       }
 
-      setSuccessMessage(`📢 Notifikasi (${notifCategory}) berhasil disebar ke semua user!`);
+      setSuccessMessage(`🎉 Notifikasi (${notifCategory}) berhasil disebar ke semua user!`);
       setNotifTitle('');
       setNotifMessage('');
     } catch (err: any) {
