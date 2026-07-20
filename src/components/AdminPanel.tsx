@@ -36,7 +36,7 @@ export function AdminPanel() {
   // Handle auto-clearing success messages
   useEffect(() => {
     if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      const timer = setTimeout(() => setSuccessMessage(null), 4000);
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
@@ -51,17 +51,31 @@ export function AdminPanel() {
     setSuccessMessage(null);
 
     const fullTitle = `${notifCategory} ${notifTitle}`;
+    const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
+    const restApiKey = import.meta.env.VITE_ONESIGNAL_REST_API_KEY;
+
+    // Sanity check jika env belum terset di Vercel
+    if (!restApiKey || !appId) {
+      setErrorMessage("Broadcast Gagal: VITE_ONESIGNAL_REST_API_KEY atau VITE_ONESIGNAL_APP_ID belum di-set di Vercel Environment Variables!");
+      setSendingNotif(false);
+      return;
+    }
+
+    // Penanganan otomatis format Authorization header
+    const authHeader = restApiKey.startsWith('Key ') || restApiKey.startsWith('Basic ')
+      ? restApiKey
+      : `Basic ${restApiKey.trim()}`;
 
     try {
-      // MENGGUNAKAN PROXY /onesignal-api/ AGAR TIDAK KENA CORS
+      // PANGGUL VIA PROXY VERCEL REWRITE (/onesignal-api/)
       const response = await fetch("/onesignal-api/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json; charset=utf-8",
-          "Authorization": `Basic ${import.meta.env.VITE_ONESIGNAL_REST_API_KEY || ''}`
+          "Authorization": authHeader,
         },
         body: JSON.stringify({
-          app_id: import.meta.env.VITE_ONESIGNAL_APP_ID || '',
+          app_id: appId,
           included_segments: ["All"],
           headings: { en: fullTitle },
           contents: { en: notifMessage },
@@ -72,7 +86,9 @@ export function AdminPanel() {
       const resData = await response.json();
 
       if (!response.ok || resData.errors) {
-        const errDetail = resData.errors ? resData.errors.join(', ') : 'Gagal mengirim notifikasi';
+        const errDetail = resData.errors
+          ? (Array.isArray(resData.errors) ? resData.errors.join(', ') : JSON.stringify(resData.errors))
+          : 'Gagal mengirim notifikasi';
         throw new Error(errDetail);
       }
 
@@ -80,7 +96,7 @@ export function AdminPanel() {
       setNotifTitle('');
       setNotifMessage('');
     } catch (err: any) {
-      console.error(err);
+      console.error('OneSignal Broadcast Error:', err);
       setErrorMessage(`Broadcast Gagal: ${err?.message || 'Terjadi kesalahan'}`);
     } finally {
       setSendingNotif(false);
