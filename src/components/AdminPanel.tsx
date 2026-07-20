@@ -41,7 +41,7 @@ export function AdminPanel() {
     }
   }, [successMessage]);
 
-  // Handle Kirim Broadcast Notifikasi via OneSignal
+  // Handle Kirim Broadcast Notifikasi via OneSignal Proxy
   const handleBroadcastNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notifTitle || !notifMessage) return;
@@ -53,7 +53,8 @@ export function AdminPanel() {
     const fullTitle = `${notifCategory} ${notifTitle}`;
 
     try {
-      const response = await fetch("https://onesignal.com/api/v1/notifications", {
+      // MENGGUNAKAN PROXY /onesignal-api/ AGAR TIDAK KENA CORS
+      const response = await fetch("/onesignal-api/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json; charset=utf-8",
@@ -61,16 +62,21 @@ export function AdminPanel() {
         },
         body: JSON.stringify({
           app_id: import.meta.env.VITE_ONESIGNAL_APP_ID || '',
-          included_segments: ["All Subscribers"],
+          included_segments: ["All"],
           headings: { en: fullTitle },
           contents: { en: notifMessage },
           url: "https://furry-society-group.my.id"
         })
       });
 
-      if (!response.ok) throw new Error("Gagal mengirim notifikasi via OneSignal API");
+      const resData = await response.json();
 
-      setSuccessMessage(`🚀 Notifikasi (${notifCategory}) berhasil disebar ke semua user!`);
+      if (!response.ok || resData.errors) {
+        const errDetail = resData.errors ? resData.errors.join(', ') : 'Gagal mengirim notifikasi';
+        throw new Error(errDetail);
+      }
+
+      setSuccessMessage(`📢 Notifikasi (${notifCategory}) berhasil disebar ke semua user!`);
       setNotifTitle('');
       setNotifMessage('');
     } catch (err: any) {
@@ -240,9 +246,9 @@ export function AdminPanel() {
               className="w-full text-sm bg-zinc-950/80 border border-white/10 focus:border-blue-500 text-white p-3 rounded-xl focus:outline-none transition-colors"
             >
               <option value="[ANNOUNCEMENT]">📢 Announcement</option>
-              <option value="[NEW GROUP]">🐾 New Group</option>
+              <option value="[NEW GROUP]">🤝 New Group</option>
               <option value="[EVENT]">🎉 Event Info</option>
-              <option value="[UPDATE]">⚡ Portal Update</option>
+              <option value="[UPDATE]">⚙️ Portal Update</option>
             </select>
           </div>
 
