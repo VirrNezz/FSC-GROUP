@@ -1,0 +1,15 @@
+{
+  "collections": {
+    "groups": {
+      "__doc__": {
+        "status": "string",
+        "joinLink": "string"
+      }
+    },
+    "admins": {
+      "__doc__": {
+        "email": "string"
+      }
+    }
+  }
+}
