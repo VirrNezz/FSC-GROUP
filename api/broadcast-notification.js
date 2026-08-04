@@ -23,7 +23,7 @@ function getAdminAllowlist() {
  * Verifikasi Firebase ID token lewat Identity Toolkit REST API Google
  */
 async function verifyFirebaseIdToken(idToken) {
-  const firebaseApiKey = process.env.VITE_FIREBASE_API_KEY;
+  const firebaseApiKey = (process.env.VITE_FIREBASE_API_KEY || '').trim().replace(/['"]/g, '');
   if (!firebaseApiKey) {
     throw new Error('Server error: VITE_FIREBASE_API_KEY belum dipasang di Vercel.');
   }
@@ -100,9 +100,12 @@ export default async function handler(req, res) {
 
   const safeCategory = ALLOWED_CATEGORIES.includes(category) ? category : '[ANNOUNCEMENT]';
 
-  // 4. Ambil Key OneSignal dari Environment Variables
-  const restApiKey = process.env.ONESIGNAL_REST_API_KEY;
-  const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID || '97155492-540b-40ef-b9c7-72d1fed1b193';
+  // 4. Ambil Key OneSignal & Pembersihan String Spasi/Petik
+  const rawRestKey = process.env.ONESIGNAL_REST_API_KEY || '';
+  const restApiKey = rawRestKey.trim().replace(/['"]/g, '');
+
+  const rawAppId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID || '97155492-540b-40ef-b9c7-72d1fed1b193';
+  const appId = rawAppId.trim().replace(/['"]/g, '');
 
   if (!restApiKey || !appId) {
     console.error('Server error: Variabel ONESIGNAL_REST_API_KEY atau APP_ID belum diisi di Vercel.');
@@ -134,7 +137,6 @@ export default async function handler(req, res) {
           ? osData.errors.join(', ')
           : JSON.stringify(osData.errors)
         : 'OneSignal menolak permintaan.';
-      // Mengubah status HTTP dari 502 ke 400 agar pesan penolakan OneSignal tampil transparan di UI Admin
       return res.status(400).json({ error: `OneSignal Error: ${detail}` });
     }
 
