@@ -64,12 +64,19 @@ export function Translate({ text }: { text: string }) {
 export default function App() {
   const [lang, setLang] = useState<'en' | 'id'>('en');
 
-  // Inisialisasi OneSignal saat aplikasi dibuka
+  // Inisialisasi OneSignal & Minta Izin Notifikasi saat aplikasi dibuka
   useEffect(() => {
     OneSignal.init({
       appId: import.meta.env.VITE_ONESIGNAL_APP_ID || '97155492-540b-40ef-b9c7-72d1fed1b193',
       allowLocalhostAsSecureOrigin: true,
-    });
+    })
+      .then(() => {
+        // Tampilkan pop-up prompt izin notifikasi setelah SDK OneSignal siap
+        return OneSignal.Slidedown.promptPush();
+      })
+      .catch((err) => {
+        console.error('OneSignal Init Error:', err);
+      });
   }, []);
 
   const toggleLang = () => {
