@@ -1,26 +1,8 @@
 /**
  * POST /api/broadcast-notification
  *
- * Sends a OneSignal push broadcast on behalf of a logged-in FSG admin.
- *
- * This handler is the ONLY place that ever touches ONESIGNAL_REST_API_KEY.
- * That key never ships to the browser and never travels through client-side
- * code, unlike the previous implementation which read
- * `import.meta.env.VITE_ONESIGNAL_REST_API_KEY` in AdminPanel.tsx (any env
- * var prefixed with VITE_ gets inlined into the public JS bundle by Vite).
- *
- * Works unmodified as:
- *  - a Vercel Serverless Function (this file, deployed from /api)
- *  - an Express route handler (see server.js, which imports this file)
- *
- * Required environment variables (server-only, do NOT prefix with VITE_):
- *  - ONESIGNAL_REST_API_KEY   OneSignal REST API key (secret)
- *  - ONESIGNAL_APP_ID         OneSignal App ID (falls back to VITE_ONESIGNAL_APP_ID)
- *  - ADMIN_EMAILS             optional comma-separated allowlist override
- *
- * Also reads VITE_FIREBASE_API_KEY (already present for the client SDK) to
- * verify the caller's Firebase ID token server-side via Google's Identity
- * Toolkit REST API — no firebase-admin / service account needed.
+ * Handler khusus backend untuk mengirim push broadcast OneSignal.
+ * Menggunakan ONESIGNAL_REST_API_KEY secara aman di sisi server.
  */
 
 const DEFAULT_ADMIN_EMAILS = ['ochalopha@gmail.com', 'furrsocietyclan@gmail.com'];
@@ -38,14 +20,12 @@ function getAdminAllowlist() {
 }
 
 /**
- * Verifies a Firebase ID token using Google's Identity Toolkit REST API.
- * Google's servers validate the signature and expiry; we just read the
- * result. Returns the verified email, or null if the token is invalid.
+ * Verifikasi Firebase ID token lewat Identity Toolkit REST API Google
  */
 async function verifyFirebaseIdToken(idToken) {
   const firebaseApiKey = process.env.VITE_FIREBASE_API_KEY;
   if (!firebaseApiKey) {
-    throw new Error('Server misconfiguration: VITE_FIREBASE_API_KEY is not set');
+    throw new Error('Server error: VITE_FIREBASE_API_KEY belum dipasang di Vercel.');
   }
 
   const verifyRes = await fetch(
@@ -67,17 +47,18 @@ async function verifyFirebaseIdToken(idToken) {
 }
 
 export default async function handler(req, res) {
+  // Hanya menerima HTTP POST
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ---- 1. Require a Firebase ID token ----
+  // 1. Cek Token Autentikasi Firebase
   const authHeader = req.headers.authorization || '';
   const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
   if (!idToken) {
-    return res.status(401).json({ error: 'Missing Authorization bearer token.' });
+    return res.status(401).json({ error: 'Akses ditolak. Token autentikasi tidak ditemukan.' });
   }
 
   let email;
@@ -85,40 +66,41 @@ export default async function handler(req, res) {
     email = await verifyFirebaseIdToken(idToken);
   } catch (err) {
     console.error('Token verification error:', err);
-    return res.status(500).json({ error: 'Server misconfiguration.' });
+    return res.status(500).json({ error: 'Konfigurasi Firebase server belum lengkap.' });
   }
 
   if (!email) {
-    return res.status(401).json({ error: 'Invalid or expired session. Please log in again.' });
+    return res.status(401).json({ error: 'Sesi login tidak valid atau kadaluarsa. Silakan login ulang.' });
   }
 
-  // ---- 2. Only allowlisted admins may broadcast ----
+  // 2. Cek Hak Akses Admin
   const allowlist = getAdminAllowlist();
   if (!allowlist.includes(email.toLowerCase())) {
-    return res.status(403).json({ error: 'This account is not authorized to send broadcasts.' });
+    return res.status(403).json({ error: 'Akun kamu tidak memiliki izin untuk mengirim broadcast.' });
   }
 
-  // ---- 3. Validate the payload ----
+  // 3. Validasi Body Request (Input User)
   const { category, title, message } = req.body || {};
 
   if (typeof title !== 'string' || typeof message !== 'string' || !title.trim() || !message.trim()) {
-    return res.status(400).json({ error: 'Title and message are required.' });
+    return res.status(400).json({ error: 'Judul dan pesan tidak boleh kosong.' });
   }
   if (title.length > MAX_TITLE_LENGTH || message.length > MAX_MESSAGE_LENGTH) {
-    return res.status(400).json({ error: 'Title or message is too long.' });
+    return res.status(400).json({ error: 'Judul atau pesan terlalu panjang.' });
   }
 
   const safeCategory = ALLOWED_CATEGORIES.includes(category) ? category : '[ANNOUNCEMENT]';
 
-  // ---- 4. Send via OneSignal using the SERVER-ONLY secret ----
+  // 4. Ambil Key OneSignal dari Environment Variables
   const restApiKey = process.env.ONESIGNAL_REST_API_KEY;
   const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
   if (!restApiKey || !appId) {
-    console.error('Server misconfiguration: OneSignal env vars are missing.');
-    return res.status(500).json({ error: 'Notification service is not configured.' });
+    console.error('Server error: Variabel ONESIGNAL_REST_API_KEY atau APP_ID belum diisi di Vercel.');
+    return res.status(500).json({ error: 'Layanan notifikasi belum dikonfigurasi di server.' });
   }
 
+  // 5. Kirim Request ke OneSignal API
   try {
     const osRes = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
@@ -142,13 +124,14 @@ export default async function handler(req, res) {
         ? Array.isArray(osData.errors)
           ? osData.errors.join(', ')
           : JSON.stringify(osData.errors)
-        : 'OneSignal rejected the request.';
+        : 'OneSignal menolak permintaan.';
       return res.status(502).json({ error: detail });
     }
 
+    // Response sukses
     return res.status(200).json({ success: true, id: osData.id });
   } catch (err) {
-    console.error('OneSignal broadcast failed:', err);
-    return res.status(502).json({ error: 'Failed to reach the notification service.' });
+    console.error('OneSignal broadcast error:', err);
+    return res.status(502).json({ error: 'Gagal terhubung ke server OneSignal.' });
   }
 }
