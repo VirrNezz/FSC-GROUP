@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     email = await verifyFirebaseIdToken(idToken);
   } catch (err) {
     console.error('Token verification error:', err);
-    return res.status(500).json({ error: 'Konfigurasi Firebase server belum lengkap.' });
+    return res.status(500).json({ error: err.message || 'Konfigurasi Firebase server belum lengkap.' });
   }
 
   if (!email) {
@@ -80,7 +80,16 @@ export default async function handler(req, res) {
   }
 
   // 3. Validasi Body Request (Input User)
-  const { category, title, message } = req.body || {};
+  let bodyData = req.body;
+  if (typeof bodyData === 'string') {
+    try {
+      bodyData = JSON.parse(bodyData);
+    } catch (e) {
+      bodyData = {};
+    }
+  }
+
+  const { category, title, message } = bodyData || {};
 
   if (typeof title !== 'string' || typeof message !== 'string' || !title.trim() || !message.trim()) {
     return res.status(400).json({ error: 'Judul dan pesan tidak boleh kosong.' });
@@ -93,7 +102,7 @@ export default async function handler(req, res) {
 
   // 4. Ambil Key OneSignal dari Environment Variables
   const restApiKey = process.env.ONESIGNAL_REST_API_KEY;
-  const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
+  const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID || '97155492-540b-40ef-b9c7-72d1fed1b193';
 
   if (!restApiKey || !appId) {
     console.error('Server error: Variabel ONESIGNAL_REST_API_KEY atau APP_ID belum diisi di Vercel.');
@@ -125,13 +134,14 @@ export default async function handler(req, res) {
           ? osData.errors.join(', ')
           : JSON.stringify(osData.errors)
         : 'OneSignal menolak permintaan.';
-      return res.status(502).json({ error: detail });
+      // Mengubah status HTTP dari 502 ke 400 agar pesan penolakan OneSignal tampil transparan di UI Admin
+      return res.status(400).json({ error: `OneSignal Error: ${detail}` });
     }
 
     // Response sukses
     return res.status(200).json({ success: true, id: osData.id });
   } catch (err) {
     console.error('OneSignal broadcast error:', err);
-    return res.status(502).json({ error: 'Gagal terhubung ke server OneSignal.' });
+    return res.status(500).json({ error: 'Gagal terhubung ke server OneSignal.' });
   }
 }
