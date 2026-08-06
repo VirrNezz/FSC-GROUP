@@ -22,28 +22,6 @@ export function Navigation() {
   const isDarkBg = ['/', '/group/fc', '/group/2ft', '/admin'].includes(location.pathname);
   const iconColor = isOpen ? 'text-white' : (isDarkBg ? 'text-white' : 'text-slate-900');
 
-  // Variasi animasi untuk overlay lingkaran
-  const overlayVariants = {
-    closed: {
-      clipPath: 'circle(0px at calc(100% - 40px) 40px)',
-      WebkitClipPath: 'circle(0px at calc(100% - 40px) 40px)',
-      opacity: 0,
-      transition: {
-        duration: 0.35,
-        ease: [0.4, 0, 0.2, 1], // Easing halus tanpa loncatan GPU
-      }
-    },
-    open: {
-      clipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
-      WebkitClipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
-      opacity: 1,
-      transition: {
-        duration: 0.45,
-        ease: [0, 0, 0.2, 1]
-      }
-    }
-  };
-
   return (
     <>
       <button
@@ -58,18 +36,38 @@ export function Navigation() {
         {isOpen && (
           <motion.div
             key="nav-overlay"
-            initial="closed"
-            animate="open"
-            exit="closed"
-            variants={overlayVariants}
+            initial={{
+              clipPath: 'circle(0px at calc(100% - 40px) 40px)',
+              WebkitClipPath: 'circle(0px at calc(100% - 40px) 40px)',
+              opacity: 0,
+            }}
+            animate={{
+              clipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
+              WebkitClipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
+              opacity: 1,
+              transition: {
+                clipPath: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+                opacity: { duration: 0.15 }
+              }
+            }}
+            exit={{
+              // RAHASIA ANTI KEHABISAN NAPAS:
+              // Cuma disusutkan sampai 25px (ukuran tombol), tidak dipaksa ke 0px!
+              clipPath: 'circle(25px at calc(100% - 40px) 40px)',
+              WebkitClipPath: 'circle(25px at calc(100% - 40px) 40px)',
+              opacity: 0, // Hilang total pas nyampe di ukuran tombol
+              transition: {
+                clipPath: { duration: 0.25, ease: [0.7, 0, 0.84, 0] },
+                opacity: { duration: 0.18, ease: 'easeOut' } // Opacity lebih cepat fade out
+              }
+            }}
             style={{
               willChange: 'clip-path, opacity',
               transform: 'translateZ(0)',
               WebkitTransform: 'translateZ(0)',
             }}
-            className="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-xl flex flex-col justify-center items-center overflow-hidden"
+            className="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-xl flex flex-col justify-center items-center overflow-hidden pointer-events-auto"
           >
-            {/* Tombol Close */}
             <button
               onClick={() => setIsOpen(false)}
               className="absolute top-4 right-4 md:top-6 md:right-6 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white border border-white/10 z-10"
@@ -78,18 +76,14 @@ export function Navigation() {
               <X size={24} />
             </button>
 
-            {/* List Navigasi */}
             <nav className="flex flex-col gap-6 md:gap-8 text-center px-4 mb-12">
               {links.map((link, i) => (
                 <motion.div
                   key={link.path}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ 
-                    duration: 0.25, 
-                    delay: isOpen ? 0.15 + i * 0.05 : 0 
-                  }}
+                  exit={{ opacity: 0, y: -10, transition: { duration: 0.12 } }}
+                  transition={{ delay: 0.1 + i * 0.04 }}
                 >
                   <Link
                     to={link.path}
@@ -110,12 +104,11 @@ export function Navigation() {
               ))}
             </nav>
 
-            {/* Login / Logout Button */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, delay: isOpen ? 0.35 : 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+              transition={{ delay: 0.25 }}
               className="absolute bottom-8 flex flex-col items-center text-white/50"
             >
               {user ? (
