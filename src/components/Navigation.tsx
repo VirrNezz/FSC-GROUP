@@ -37,35 +37,33 @@ export function Navigation() {
           <motion.div
             key="nav-overlay"
             initial={{
-              clipPath: 'circle(0px at calc(100% - 40px) 40px)',
-              WebkitClipPath: 'circle(0px at calc(100% - 40px) 40px)',
+              // Memakai mask-image radial gradient: jauh lebih ramah GPU dibanding clip-path!
+              maskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
+              WebkitMaskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
             }}
             animate={{
-              clipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
-              WebkitClipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
+              maskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 250%, transparent 250%)',
+              WebkitMaskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 250%, transparent 250%)',
               transition: {
-                duration: 0.45,
-                // Kurva luncuran buka: meluncur mulus
+                duration: 0.5,
                 ease: [0.16, 1, 0.3, 1]
               }
             }}
             exit={{
-              clipPath: 'circle(0px at calc(100% - 40px) 40px)',
-              WebkitClipPath: 'circle(0px at calc(100% - 40px) 40px)',
+              maskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
+              WebkitMaskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
               transition: {
+                // Easing cubic-bezier khusus agar akhiran meluncur (slurrrr) tanpa terhenti
                 duration: 0.4,
-                // RAHASIA 60FPS SLURRRRRR:
-                // Quintic ease-out curve [0.23, 1, 0.32, 1] bikin pengereman lingkaran sangat halus
-                ease: [0.23, 1, 0.32, 1]
+                ease: [0.32, 0, 0.67, 0] 
               }
             }}
             style={{
-              willChange: 'clip-path, -webkit-clip-path',
+              willChange: 'mask-image, -webkit-mask-image',
               transform: 'translateZ(0)',
               WebkitTransform: 'translateZ(0)',
             }}
-            // Trik performa: bg-zinc-950 pekat (98%) bikin visual tetap mewah tanpa nyiksa GPU dengan blur berlebih
-            className="fixed inset-0 z-50 bg-zinc-950/98 backdrop-blur-md flex flex-col justify-center items-center overflow-hidden pointer-events-auto"
+            className="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-xl flex flex-col justify-center items-center overflow-hidden pointer-events-auto"
           >
             <button
               onClick={() => setIsOpen(false)}
@@ -81,7 +79,6 @@ export function Navigation() {
                   key={link.path}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  // Teks menghilang instan saat tombol ditutup agar GPU murni fokus 100% ke animasi lingkaran slurrrr!
                   exit={{ opacity: 0, transition: { duration: 0.1 } }}
                   transition={{ delay: 0.08 + i * 0.03 }}
                 >
