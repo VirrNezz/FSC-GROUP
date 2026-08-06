@@ -44,8 +44,8 @@ export function Navigation() {
               clipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
               WebkitClipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
               transition: {
-                // Saat Buka: Lembut meluas
-                duration: 0.5,
+                duration: 0.45,
+                // Kurva luncuran buka: meluncur mulus
                 ease: [0.16, 1, 0.3, 1]
               }
             }}
@@ -53,11 +53,10 @@ export function Navigation() {
               clipPath: 'circle(0px at calc(100% - 40px) 40px)',
               WebkitClipPath: 'circle(0px at calc(100% - 40px) 40px)',
               transition: {
-                // RAHASIA EFEK SLURRRRRR:
-                // Kurva Bezier [0.22, 1, 0.36, 1] ngasih pelambatan yang sangat mulus di akhiran.
-                // Durasi 0.45s bikin momen mengecilnya dapet ritme meluncur tanpa 'kaget'.
-                duration: 0.45,
-                ease: [0.22, 1, 0.36, 1] 
+                duration: 0.4,
+                // RAHASIA 60FPS SLURRRRRR:
+                // Quintic ease-out curve [0.23, 1, 0.32, 1] bikin pengereman lingkaran sangat halus
+                ease: [0.23, 1, 0.32, 1]
               }
             }}
             style={{
@@ -65,8 +64,8 @@ export function Navigation() {
               transform: 'translateZ(0)',
               WebkitTransform: 'translateZ(0)',
             }}
-            // Diturunkan ke backdrop-blur-lg biar GPU gak keberatan pas ngolah efek slurrr-nya
-            className="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-lg flex flex-col justify-center items-center overflow-hidden pointer-events-auto"
+            // Trik performa: bg-zinc-950 pekat (98%) bikin visual tetap mewah tanpa nyiksa GPU dengan blur berlebih
+            className="fixed inset-0 z-50 bg-zinc-950/98 backdrop-blur-md flex flex-col justify-center items-center overflow-hidden pointer-events-auto"
           >
             <button
               onClick={() => setIsOpen(false)}
@@ -82,8 +81,9 @@ export function Navigation() {
                   key={link.path}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5, transition: { duration: 0.15 } }}
-                  transition={{ delay: 0.1 + i * 0.03 }}
+                  // Teks menghilang instan saat tombol ditutup agar GPU murni fokus 100% ke animasi lingkaran slurrrr!
+                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                  transition={{ delay: 0.08 + i * 0.03 }}
                 >
                   <Link
                     to={link.path}
@@ -107,8 +107,8 @@ export function Navigation() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.15 } }}
-              transition={{ delay: 0.2 }}
+              exit={{ opacity: 0, transition: { duration: 0.1 } }}
+              transition={{ delay: 0.18 }}
               className="absolute bottom-8 flex flex-col items-center text-white/50"
             >
               {user ? (
