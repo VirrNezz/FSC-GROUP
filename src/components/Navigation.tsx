@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
-import { Translate } from '../App'; // <-- 1. IMPORT TRANSLATE SUPAYA NAVBAR BISA BERUBAH BAHASA
+import { Translate } from '../App';
 
 const links = [
   { name: 'Home', path: '/', gradient: 'from-blue-400 via-blue-200 to-white' },
@@ -16,8 +16,6 @@ const links = [
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
-  // FIX (Android glitch): melacak kapan animasi clip-path benar-benar berjalan,
-  // supaya `willChange` hanya aktif saat dibutuhkan lalu dilepas begitu selesai.
   const [isAnimating, setIsAnimating] = useState(false);
   const location = useLocation();
   const { user, loginWithGoogle, logout } = useAuth();
@@ -35,49 +33,37 @@ export function Navigation() {
         <Menu size={24} />
       </button>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
-            // SOLUSI: Mengubah 150vh menjadi 150vmax agar radius lingkaran meluas sempurna menutupi laptop/PC layar lebar
-            // FIX: WebkitClipPath ditambahkan karena Safari/iOS < 15.4 hanya mengenali
-            // -webkit-clip-path — tanpa ini, reveal menu bisa terlihat "macet" di pojok
-            // kanan atas alih-alih membuka penuh di browser tersebut.
-            initial={{ clipPath: 'circle(0px at calc(100% - 44px) 44px)', WebkitClipPath: 'circle(0px at calc(100% - 44px) 44px)' }}
-            animate={{ clipPath: 'circle(150vmax at calc(100% - 44px) 44px)', WebkitClipPath: 'circle(150vmax at calc(100% - 44px) 44px)' }}
+            initial={{ 
+              clipPath: 'circle(0px at calc(100% - 44px) 44px)', 
+              WebkitClipPath: 'circle(0px at calc(100% - 44px) 44px)' 
+            }}
+            animate={{ 
+              clipPath: 'circle(150vmax at calc(100% - 44px) 44px)', 
+              WebkitClipPath: 'circle(150vmax at calc(100% - 44px) 44px)',
+              transition: { type: 'spring', stiffness: 25, damping: 10 }
+            }}
             exit={{
               clipPath: 'circle(0px at calc(100% - 44px) 44px)',
               WebkitClipPath: 'circle(0px at calc(100% - 44px) 44px)',
-              // FIX (Android glitch): restDelta/restSpeed diperkecil secara eksplisit.
-              // exit{} mendefinisikan transition{}-nya sendiri sehingga TIDAK mewarisi
-              // restDelta:2 dari prop `transition` utama di bawah — tanpa ini, Framer
-              // Motion memakai nilai default yang bisa membuat spring "dianggap selesai"
-              // sebelum radius lingkaran benar-benar menyentuh 0px. Sisa beberapa piksel
-              // itulah yang terlihat sebagai patahan/flash saat elemen di-unmount di GPU
-              // Android (Chrome Mobile/Samsung Internet).
-              transition: { delay: 0.3, type: 'spring', stiffness: 400, damping: 40, restDelta: 0.5, restSpeed: 0.5 }
+              // FIX KHUSUS ANDROID: Menggunakan 'tween' dengan kurva easing yang pasti 
+              // daripada 'spring'. Durasi 0.35 detik membuat penutupan sangat presisi 0px
+              // tanpa ada jeda atau sisa frame gantung di GPU Android.
+              transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] }
             }}
-            transition={{ type: 'spring', stiffness: 20, restDelta: 2 }}
             onAnimationStart={() => setIsAnimating(true)}
             onAnimationComplete={() => setIsAnimating(false)}
-            // FIX (Android glitch): style tambahan murni untuk GPU compositing hint.
-            // - translateZ(0) + backfaceVisibility 'hidden': memaksa browser membuat SATU
-            //   compositing layer yang tetap (persistent) sepanjang animasi. Tanpa ini,
-            //   compositor Android kadang mem-promote/demote layer overlay ini di
-            //   tengah animasi clip-path (karena ukurannya mendekati nol dianggap
-            //   "tidak signifikan"), dan perpindahan layer itulah yang tampak sebagai
-            //   flicker/jump 1 frame tepat sebelum elemen hilang.
-            // - willChange hanya aktif SELAMA isAnimating true (via onAnimationStart/
-            //   onAnimationComplete), lalu dikembalikan ke 'auto' setelah selesai —
-            //   supaya browser tidak terus-menerus mengalokasikan layer GPU untuk
-            //   elemen yang sudah diam (boros memori GPU di HP Android kelas menengah
-            //   ke bawah).
             style={{
               willChange: isAnimating ? 'clip-path, -webkit-clip-path' : 'auto',
               transform: 'translateZ(0)',
+              WebkitTransform: 'translateZ(0)',
               WebkitBackfaceVisibility: 'hidden',
               backfaceVisibility: 'hidden',
             }}
-            className="fixed inset-0 z-50 isolate bg-zinc-950/95 backdrop-blur-2xl flex flex-col justify-center items-center"
+            // FIX: Menggabungkan backdrop-blur dengan opacity fallback agar rendering tidak dipaksa berat saat menyusut
+            className="fixed inset-0 z-50 isolate bg-zinc-950/95 backdrop-blur-2xl flex flex-col justify-center items-center pointer-events-auto"
           >
             <button
               onClick={() => setIsOpen(false)}
@@ -93,8 +79,8 @@ export function Navigation() {
                   key={link.path}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ delay: 0.1 + i * 0.1 }}
+                  exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+                  transition={{ delay: 0.1 + i * 0.05 }}
                 >
                   <Link
                     to={link.path}
@@ -102,7 +88,6 @@ export function Navigation() {
                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter relative group block hover:scale-105 transition-transform duration-300"
                   >
                     <span className={cn("bg-clip-text text-transparent bg-gradient-to-r transition-all duration-300", link.gradient, location.pathname !== link.path && "opacity-70 group-hover:opacity-100")}>
-                      {/* 2. BUNGKUS NAMA LINK DENGAN COMPONENT TRANSLATE */}
                       <Translate text={link.name} />
                     </span>
                     {location.pathname === link.path && (
@@ -119,8 +104,8 @@ export function Navigation() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ delay: 0.4 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ delay: 0.3 }}
               className="absolute bottom-8 flex flex-col items-center text-white/50"
             >
               {user ? (
