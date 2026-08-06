@@ -39,34 +39,34 @@ export function Navigation() {
             initial={{
               clipPath: 'circle(0px at calc(100% - 40px) 40px)',
               WebkitClipPath: 'circle(0px at calc(100% - 40px) 40px)',
-              opacity: 0,
             }}
             animate={{
               clipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
               WebkitClipPath: 'circle(150vmax at calc(100% - 40px) 40px)',
-              opacity: 1,
               transition: {
-                clipPath: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
-                opacity: { duration: 0.15 }
+                // Saat Buka: Lembut meluas
+                duration: 0.5,
+                ease: [0.16, 1, 0.3, 1]
               }
             }}
             exit={{
-              // RAHASIA ANTI KEHABISAN NAPAS:
-              // Cuma disusutkan sampai 25px (ukuran tombol), tidak dipaksa ke 0px!
-              clipPath: 'circle(25px at calc(100% - 40px) 40px)',
-              WebkitClipPath: 'circle(25px at calc(100% - 40px) 40px)',
-              opacity: 0, // Hilang total pas nyampe di ukuran tombol
+              clipPath: 'circle(0px at calc(100% - 40px) 40px)',
+              WebkitClipPath: 'circle(0px at calc(100% - 40px) 40px)',
               transition: {
-                clipPath: { duration: 0.25, ease: [0.7, 0, 0.84, 0] },
-                opacity: { duration: 0.18, ease: 'easeOut' } // Opacity lebih cepat fade out
+                // RAHASIA EFEK SLURRRRRR:
+                // Kurva Bezier [0.22, 1, 0.36, 1] ngasih pelambatan yang sangat mulus di akhiran.
+                // Durasi 0.45s bikin momen mengecilnya dapet ritme meluncur tanpa 'kaget'.
+                duration: 0.45,
+                ease: [0.22, 1, 0.36, 1] 
               }
             }}
             style={{
-              willChange: 'clip-path, opacity',
+              willChange: 'clip-path, -webkit-clip-path',
               transform: 'translateZ(0)',
               WebkitTransform: 'translateZ(0)',
             }}
-            className="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-xl flex flex-col justify-center items-center overflow-hidden pointer-events-auto"
+            // Diturunkan ke backdrop-blur-lg biar GPU gak keberatan pas ngolah efek slurrr-nya
+            className="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-lg flex flex-col justify-center items-center overflow-hidden pointer-events-auto"
           >
             <button
               onClick={() => setIsOpen(false)}
@@ -82,8 +82,8 @@ export function Navigation() {
                   key={link.path}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10, transition: { duration: 0.12 } }}
-                  transition={{ delay: 0.1 + i * 0.04 }}
+                  exit={{ opacity: 0, y: -5, transition: { duration: 0.15 } }}
+                  transition={{ delay: 0.1 + i * 0.03 }}
                 >
                   <Link
                     to={link.path}
@@ -107,8 +107,8 @@ export function Navigation() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.12 } }}
-              transition={{ delay: 0.25 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ delay: 0.2 }}
               className="absolute bottom-8 flex flex-col items-center text-white/50"
             >
               {user ? (
