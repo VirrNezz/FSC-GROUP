@@ -16,6 +16,9 @@ const links = [
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
+  // FIX (Android glitch): melacak kapan animasi clip-path benar-benar berjalan,
+  // supaya `willChange` hanya aktif saat dibutuhkan lalu dilepas begitu selesai.
+  const [isAnimating, setIsAnimating] = useState(false);
   const location = useLocation();
   const { user, loginWithGoogle, logout } = useAuth();
 
@@ -41,13 +44,40 @@ export function Navigation() {
             // kanan atas alih-alih membuka penuh di browser tersebut.
             initial={{ clipPath: 'circle(0px at calc(100% - 44px) 44px)', WebkitClipPath: 'circle(0px at calc(100% - 44px) 44px)' }}
             animate={{ clipPath: 'circle(150vmax at calc(100% - 44px) 44px)', WebkitClipPath: 'circle(150vmax at calc(100% - 44px) 44px)' }}
-            exit={{ 
+            exit={{
               clipPath: 'circle(0px at calc(100% - 44px) 44px)',
               WebkitClipPath: 'circle(0px at calc(100% - 44px) 44px)',
-              transition: { delay: 0.3, type: 'spring', stiffness: 400, damping: 40 }
+              // FIX (Android glitch): restDelta/restSpeed diperkecil secara eksplisit.
+              // exit{} mendefinisikan transition{}-nya sendiri sehingga TIDAK mewarisi
+              // restDelta:2 dari prop `transition` utama di bawah — tanpa ini, Framer
+              // Motion memakai nilai default yang bisa membuat spring "dianggap selesai"
+              // sebelum radius lingkaran benar-benar menyentuh 0px. Sisa beberapa piksel
+              // itulah yang terlihat sebagai patahan/flash saat elemen di-unmount di GPU
+              // Android (Chrome Mobile/Samsung Internet).
+              transition: { delay: 0.3, type: 'spring', stiffness: 400, damping: 40, restDelta: 0.5, restSpeed: 0.5 }
             }}
             transition={{ type: 'spring', stiffness: 20, restDelta: 2 }}
-            className="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-2xl flex flex-col justify-center items-center"
+            onAnimationStart={() => setIsAnimating(true)}
+            onAnimationComplete={() => setIsAnimating(false)}
+            // FIX (Android glitch): style tambahan murni untuk GPU compositing hint.
+            // - translateZ(0) + backfaceVisibility 'hidden': memaksa browser membuat SATU
+            //   compositing layer yang tetap (persistent) sepanjang animasi. Tanpa ini,
+            //   compositor Android kadang mem-promote/demote layer overlay ini di
+            //   tengah animasi clip-path (karena ukurannya mendekati nol dianggap
+            //   "tidak signifikan"), dan perpindahan layer itulah yang tampak sebagai
+            //   flicker/jump 1 frame tepat sebelum elemen hilang.
+            // - willChange hanya aktif SELAMA isAnimating true (via onAnimationStart/
+            //   onAnimationComplete), lalu dikembalikan ke 'auto' setelah selesai —
+            //   supaya browser tidak terus-menerus mengalokasikan layer GPU untuk
+            //   elemen yang sudah diam (boros memori GPU di HP Android kelas menengah
+            //   ke bawah).
+            style={{
+              willChange: isAnimating ? 'clip-path, -webkit-clip-path' : 'auto',
+              transform: 'translateZ(0)',
+              WebkitBackfaceVisibility: 'hidden',
+              backfaceVisibility: 'hidden',
+            }}
+            className="fixed inset-0 z-50 isolate bg-zinc-950/95 backdrop-blur-2xl flex flex-col justify-center items-center"
           >
             <button
               onClick={() => setIsOpen(false)}
