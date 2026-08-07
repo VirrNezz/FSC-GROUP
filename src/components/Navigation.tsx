@@ -37,7 +37,6 @@ export function Navigation() {
           <motion.div
             key="nav-overlay"
             initial={{
-              // Memakai mask-image radial gradient: jauh lebih ramah GPU dibanding clip-path!
               maskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
               WebkitMaskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
             }}
@@ -45,7 +44,8 @@ export function Navigation() {
               maskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 250%, transparent 250%)',
               WebkitMaskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 250%, transparent 250%)',
               transition: {
-                duration: 0.5,
+                // BUKA: Dibuat lebih lambat & estetik (0.75s)
+                duration: 0.75,
                 ease: [0.16, 1, 0.3, 1]
               }
             }}
@@ -53,9 +53,9 @@ export function Navigation() {
               maskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
               WebkitMaskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
               transition: {
-                // Easing cubic-bezier khusus agar akhiran meluncur (slurrrr) tanpa terhenti
-                duration: 0.4,
-                ease: [0.32, 0, 0.67, 0] 
+                // TUTUP: Diperlembut jadi 0.6s biar meluncur santai tanpa kaget
+                duration: 0.6,
+                ease: [0.22, 1, 0.36, 1] 
               }
             }}
             style={{
@@ -77,10 +77,10 @@ export function Navigation() {
               {links.map((link, i) => (
                 <motion.div
                   key={link.path}
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                  transition={{ delay: 0.08 + i * 0.03 }}
+                  exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+                  transition={{ delay: 0.12 + i * 0.04 }}
                 >
                   <Link
                     to={link.path}
@@ -104,8 +104,8 @@ export function Navigation() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.1 } }}
-              transition={{ delay: 0.18 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ delay: 0.25 }}
               className="absolute bottom-8 flex flex-col items-center text-white/50"
             >
               {user ? (
