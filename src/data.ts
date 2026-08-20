@@ -10,10 +10,9 @@ export const groups = {
     status: "OPEN",
     joinLink: "#join-fsc",
     staff: [
-      { name: "kyshoo", role: "Owner", image: "/profiles/kyshoo.png" },
-      { name: "kaishii", role: "Co-Owner", image: "/profiles/kaishii.png" },
+      { name: "kaishii", role: "Owner", image: "/profiles/kaishii.png" },
       { name: "Lewis Welby", role: "Co-Owner", image: "/profiles/alzelewis.png" },
-      { name: "nesi", role: "Supervisor", image: "/profiles/nesi.png" },
+      { name: "nesi", role: "Co-Owner", image: "/profiles/nesi.png" },
       { name: "rezzx", role: "Supervisor", image: "/profiles/rezzx.png" },
       { name: "Safran", role: "Supervisor", image: "/profiles/safran.png" },
       { name: "Yanzkyy", role: "Supervisor", image: "/profiles/yanzkyy.png" },
