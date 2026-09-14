@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+/* Custom Cursor Set: Changed Puro */
+@media (pointer: fine) {
+  /* Kursor Standar untuk seluruh halaman */
+  body, html {
+    cursor: url('/cursor/Normal.cur'), auto !important;
+  }
+
+  /* Kursor saat hover ke elemen interaktif (tombol, link, menu) */
+  a, 
+  button, 
+  input, 
+  select, 
+  textarea, 
+  [role="button"],
+  .group {
+    cursor: url('/cursor/LinkSelect.cur'), pointer !important;
+  }
+}

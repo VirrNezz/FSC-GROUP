@@ -61,14 +61,14 @@ export const adminsData = [
     name: "kaishii",
     image: "/profiles/kaishii.png",
     bio: "Owner of the FSG (Furry Society Group) community, lead website designer, and domain sponsor.",
-    socials: { ig: "https://instagram.com", telegram: "https://t.me" }
+    socials: { ig: "https://instagram.com/shiiwashere_?stkn=bWZtMng0MmxzeTQz", telegram: "https://t.me" }
   },
   {
     id: "a2",
     name: "nesi",
     image: "/profiles/nesi.png",
     bio: "Lead developer for the FSG website. Reach out with bug reports or feature suggestions.",
-    socials: { telegram: "https://t.me" }
+    socials: { telegram: "https://t.me/@Nesinezz" }
   }
 ];
 
