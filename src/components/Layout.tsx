@@ -1,8 +1,65 @@
-import React, { useEffect } from 'react'; // <-- Ditambahkan useEffect
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 import { Navigation } from './Navigation';
 import { useLang } from '../App'; 
+
+// --- KOMPONEN JAM REALTIME (AUTO DETECT TIMEZONE) ---
+function LiveClock() {
+  const [timeData, setTimeData] = useState<{ time: string; zone: string }>({
+    time: '',
+    zone: '',
+  });
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+
+      // 1. Ambil Waktu Format 24 Jam (Jam:Menit:Detik)
+      const timeString = now.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+
+      // 2. Deteksi Timezone Perangkat Client
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      // 3. Mapping Singkatan Waktu Indonesia & Fallback Luar Negeri
+      let zoneLabel = '';
+      if (userTimeZone === 'Asia/Jakarta' || userTimeZone === 'Asia/Pontianak') {
+        zoneLabel = 'WIB';
+      } else if (userTimeZone === 'Asia/Makassar' || userTimeZone === 'Asia/Denpasar') {
+        zoneLabel = 'WITA';
+      } else if (userTimeZone === 'Asia/Jayapura') {
+        zoneLabel = 'WIT';
+      } else {
+        const shortZone = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ')[2];
+        zoneLabel = shortZone || 'LOCAL';
+      }
+
+      setTimeData({ time: timeString, zone: zoneLabel });
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!timeData.time) return null;
+
+  return (
+    <div className="px-4 py-2 bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-full text-xs font-mono font-bold tracking-widest text-white shadow-2xl flex items-center gap-2 select-none">
+      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+      <span>{timeData.time}</span>
+      <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-zinc-300 font-sans uppercase">
+        {timeData.zone}
+      </span>
+    </div>
+  );
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -10,27 +67,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   // --- SCRIPT NOTIFIKASI ONESIGNAL ---
   useEffect(() => {
-    // 1. Inject tag script SDK OneSignal ke HTML secara dinamis
     const script = document.createElement('script');
     script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
     script.defer = true;
     document.head.appendChild(script);
 
-    // 2. Inisialisasi setelah SDK ter-load
     script.onload = () => {
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
-          appId: "MASUKKAN_APP_ID_ONESIGNAL_KAMU_DISINI", // <-- Ganti pakai App ID dari dashboard OneSignal
-          safari_web_id: "MASUKKAN_SAFARI_ID_JIKA_ADA",  // <-- Opsional, bisa dihapus kalau gak pakai
+          appId: "MASUKKAN_APP_ID_ONESIGNAL_KAMU_DISINI",
+          safari_web_id: "MASUKKAN_SAFARI_ID_JIKA_ADA",
           notifyButton: {
-            enable: true, // Memunculkan tombol lonceng otomatis di pojok kanan/kiri bawah
+            enable: true,
           },
         });
       });
     };
 
-    // Bersihkan script saat komponen unmount (good practice)
     return () => {
       document.head.removeChild(script);
     };
@@ -83,7 +137,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen w-full relative overflow-x-hidden selection:bg-blue-500/30">
       
+      {/* FLOATING BAR (JAM & PEMILIH BAHASA) */}
       <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2">
+        <LiveClock />
+        
         <button 
           onClick={toggleLang}
           className="px-4 py-2 bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-full text-xs font-black tracking-widest text-white hover:bg-zinc-800/90 shadow-2xl hover:border-white/20 transition-all cursor-pointer active:scale-95 select-none uppercase"
