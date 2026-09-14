@@ -1,8 +1,50 @@
-import React, { useEffect } from 'react'; // <-- Ditambahkan useEffect
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 import { Navigation } from './Navigation';
 import { useLang } from '../App'; 
+
+// --- KOMPONEN JAM REALTIME (AUTO TIMEZONE & AMAN) ---
+function LiveClock() {
+  const getInitialTime = () => {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    
+    let zone = 'WIB';
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz.includes('Jakarta') || tz.includes('Pontianak')) zone = 'WIB';
+      else if (tz.includes('Makassar') || tz.includes('Denpasar')) zone = 'WITA';
+      else if (tz.includes('Jayapura')) zone = 'WIT';
+      else zone = 'LOCAL';
+    } catch {
+      zone = 'WIB';
+    }
+
+    return { time: `${h}:${m}:${s}`, zone };
+  };
+
+  const [timeData, setTimeData] = useState(getInitialTime);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeData(getInitialTime());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="px-3 py-1.5 bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-full text-[11px] font-mono font-bold tracking-widest text-white shadow-2xl flex items-center justify-center gap-2 select-none">
+      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+      <span>{timeData.time}</span>
+      <span className="text-[9px] bg-white/10 px-1 py-0.2 rounded text-zinc-300 font-sans uppercase">
+        {timeData.zone}
+      </span>
+    </div>
+  );
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -83,13 +125,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen w-full relative overflow-x-hidden selection:bg-blue-500/30">
       
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2">
+      {/* FLOATING BAR (PEMILIH BAHASA ATAS, JAM DI BAWAHNYA) */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
         <button 
           onClick={toggleLang}
           className="px-4 py-2 bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-full text-xs font-black tracking-widest text-white hover:bg-zinc-800/90 shadow-2xl hover:border-white/20 transition-all cursor-pointer active:scale-95 select-none uppercase"
         >
           {lang === 'en' ? '🌐 EN' : '🌐 ID'}
         </button>
+
+        {/* Jam Realtime ditaruh di bawah tombol bahasa */}
+        <LiveClock />
       </div>
 
       <AnimatePresence mode="popLayout">
@@ -123,4 +169,3 @@ export function Layout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
