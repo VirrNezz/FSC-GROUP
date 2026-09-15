@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { Navigation } from './Navigation';
 import { useLang } from '../App'; 
 
-// --- KOMPONEN JAM REALTIME (AUTO TIMEZONE & AMAN) ---
+// --- KOMPONEN JAM REALTIME (STYLING CARD UNIFIED) ---
 function LiveClock() {
   const getInitialTime = () => {
     const now = new Date();
@@ -36,10 +36,10 @@ function LiveClock() {
   }, []);
 
   return (
-    <div className="px-3 py-1.5 bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-full text-[11px] font-mono font-bold tracking-widest text-white shadow-2xl flex items-center justify-center gap-2 select-none">
+    <div className="px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/10 rounded-full text-xs font-mono font-bold tracking-widest text-white shadow-xl transition-colors flex items-center justify-center gap-2 select-none">
       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
       <span>{timeData.time}</span>
-      <span className="text-[9px] bg-white/10 px-1 py-0.2 rounded text-zinc-300 font-sans uppercase">
+      <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-zinc-300 font-sans uppercase">
         {timeData.zone}
       </span>
     </div>
@@ -129,7 +129,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
         <button 
           onClick={toggleLang}
-          className="px-4 py-2 bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-full text-xs font-black tracking-widest text-white hover:bg-zinc-800/90 shadow-2xl hover:border-white/20 transition-all cursor-pointer active:scale-95 select-none uppercase"
+          className="px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full text-xs font-black tracking-widest text-white hover:bg-white/10 shadow-xl transition-all cursor-pointer active:scale-95 select-none uppercase"
         >
           {lang === 'en' ? '🌐 EN' : '🌐 ID'}
         </button>

@@ -1,18 +1,34 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Users, Sparkles, PenTool, Shield, Globe, Heart } from 'lucide-react';
+import { ChevronDown, Users, Sparkles, PenTool, Shield, Globe, Heart, MessageSquare, Video } from 'lucide-react';
 import { useState } from 'react';
 import { groups as staticGroups, faqs } from '../data';
 import { cn } from '../lib/utils';
 import { useGroups } from '../hooks/useGroups';
-import { Translate } from '../App'; // <-- 1. IMPORT TRANSLATE DARI APP.TSX
+import { Translate } from '../App';
 
 const iconMap: Record<string, React.ReactNode> = {
   fsc: <Users size={40} className="mb-4 text-blue-500" />,
   fc: <Sparkles size={40} className="mb-4 text-blue-400" />,
   '2ft': <PenTool size={40} className="mb-4 text-zinc-400" />
 };
+
+// --- DATA MEDIA SOSIAL (HANYA WHATSAPP & TIKTOK) ---
+const socialLinks = [
+  { 
+    name: 'WhatsApp', 
+    url: 'https://chat.whatsapp.com/', 
+    icon: <MessageSquare size={16} className="text-emerald-400" />, 
+    color: 'hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300' 
+  },
+  { 
+    name: 'TikTok', 
+    url: 'https://tiktok.com/', 
+    icon: <Video size={16} className="text-pink-400" />, 
+    color: 'hover:border-pink-500/50 hover:bg-pink-500/10 hover:text-pink-300' 
+  },
+];
 
 export function Home() {
   const { groups: liveGroups } = useGroups();
@@ -30,7 +46,6 @@ export function Home() {
           <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 mb-6 md:mb-8 backdrop-blur-md">
             <Sparkles size={16} className="mr-2" />
             <span className="text-xs sm:text-sm font-semibold uppercase tracking-wider">
-              {/* 2. CUKUP BUNGKUS DENGAN <Translate text="..." /> */}
               <Translate text="Welcome to the Community" />
             </span>
           </div>
@@ -40,9 +55,33 @@ export function Home() {
               (Furry Society Group)
             </span>
           </h1>
-          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-zinc-400 max-w-3xl leading-relaxed font-light">
+          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-zinc-400 max-w-3xl leading-relaxed font-light mb-8">
             <Translate text="Furry Society: We are Furr, Together We Can!!" />
           </p>
+
+          {/* SECTION SOCIAL LINKS (WHATSAPP & TIKTOK) */}
+          <div className="flex flex-wrap items-center gap-3">
+            {socialLinks.map((item, i) => (
+              <motion.a
+                key={item.name}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 + (i * 0.1) }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={cn(
+                  "px-5 py-2.5 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-full text-xs sm:text-sm font-semibold text-white shadow-xl transition-all flex items-center gap-2.5 select-none",
+                  item.color
+                )}
+              >
+                {item.icon}
+                <span><Translate text={item.name} /></span>
+              </motion.a>
+            ))}
+          </div>
         </motion.div>
       </section>
 
@@ -103,7 +142,7 @@ export function Home() {
                 transition={{ delay: i * 0.1 }}
                 className="group relative bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-800/60 border border-white/10 rounded-[2rem] md:rounded-[2.5rem] p-6 sm:p-8 lg:p-10 transition-all duration-300 flex flex-col"
               >
-                <div className="mb-4 md:mb-6 p-3 md:p-4 rounded-2xl bg-white/5 inline-block self-start group-hover:scale-110 transition-transform duration-300 flex justify-between w-full">
+                <div className="mb-4 md:mb-6 p-3 md:p-4 rounded-2xl bg-white/5 flex justify-between w-full">
                   <div>{iconMap[group.id]}</div>
                   <div className={cn("px-3 py-1 rounded-full text-xs font-bold self-start", group.status === 'OPEN' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400')}>
                     {group.status}
@@ -111,7 +150,6 @@ export function Home() {
                 </div>
                 <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold mb-2 md:mb-3">{group.name}</h3>
                 <p className="text-sm md:text-base lg:text-lg text-zinc-400 mb-8 md:mb-10 flex-1 leading-relaxed line-clamp-3">
-                  {/* Karena deskripsi grup ditarik dari data eksternal, kita juga bisa langsung bungkus datanya di sini */}
                   <Translate text={group.description} />
                 </p>
                 
