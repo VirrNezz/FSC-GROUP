@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Users, Sparkles, PenTool, Shield, Globe, Heart, MessageSquare, Video } from 'lucide-react';
+import { ChevronDown, Users, Sparkles, PenTool, Shield, Globe, Heart, MessageSquare, Video, ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
 import { groups as staticGroups, faqs } from '../data';
 import { cn } from '../lib/utils';
@@ -14,20 +14,28 @@ const iconMap: Record<string, React.ReactNode> = {
   '2ft': <PenTool size={40} className="mb-4 text-zinc-400" />
 };
 
-// --- DATA MEDIA SOSIAL (HANYA WHATSAPP & TIKTOK) ---
-const socialLinks = [
-  { 
-    name: 'WhatsApp', 
-    url: 'https://whatsapp.com/channel/0029VbDwC12EAKWHQHBHmk0t', 
-    icon: <MessageSquare size={16} className="text-emerald-400" />, 
-    color: 'hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300' 
+// --- DATA MEDIA SOSIAL (DESAIN CARD MIRIP OUR GROUPS) ---
+const socialCards = [
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp Channel',
+    description: 'Join our official WhatsApp channel to get the latest announcements, updates, and community news directly.',
+    url: 'https://whatsapp.com/channel/0029VbDwC12EAKWHQHBHmk0t',
+    icon: <MessageSquare size={40} className="mb-4 text-emerald-400" />,
+    badge: 'COMMUNITY',
+    badgeColor: 'bg-emerald-500/20 text-emerald-400',
+    btnColor: 'bg-emerald-500/10 text-emerald-400 group-hover:text-emerald-300'
   },
-  { 
-    name: 'TikTok', 
-    url: 'https://www.tiktok.com/@furrysocietygroup?_r=1&_t=ZS-99jzCZUZZu4', 
-    icon: <Video size={16} className="text-pink-400" />, 
-    color: 'hover:border-pink-500/50 hover:bg-pink-500/10 hover:text-pink-300' 
-  },
+  {
+    id: 'tiktok',
+    name: 'TikTok Official',
+    description: 'Follow our official TikTok account to watch community highlights, fun edits, and event announcements.',
+    url: 'https://www.tiktok.com/@furrysocietygroup?_r=1&_t=ZS-99jzCZUZZu4',
+    icon: <Video size={40} className="mb-4 text-pink-400" />,
+    badge: 'OFFICIAL',
+    badgeColor: 'bg-pink-500/20 text-pink-400',
+    btnColor: 'bg-pink-500/10 text-pink-400 group-hover:text-pink-300'
+  }
 ];
 
 export function Home() {
@@ -55,33 +63,9 @@ export function Home() {
               (Furry Society Group)
             </span>
           </h1>
-          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-zinc-400 max-w-3xl leading-relaxed font-light mb-8">
+          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-zinc-400 max-w-3xl leading-relaxed font-light">
             <Translate text="Furry Society: We are Furr, Together We Can!!" />
           </p>
-
-          {/* SECTION SOCIAL LINKS (WHATSAPP & TIKTOK) */}
-          <div className="flex flex-wrap items-center gap-3">
-            {socialLinks.map((item, i) => (
-              <motion.a
-                key={item.name}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4 + (i * 0.1) }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={cn(
-                  "px-5 py-2.5 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-full text-xs sm:text-sm font-semibold text-white shadow-xl transition-all flex items-center gap-2.5 select-none",
-                  item.color
-                )}
-              >
-                {item.icon}
-                <span><Translate text={item.name} /></span>
-              </motion.a>
-            ))}
-          </div>
         </motion.div>
       </section>
 
@@ -168,6 +152,70 @@ export function Home() {
                 </Link>
               </motion.div>
             )})}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Social Media Section (KARTU BESAR PAS DI BAWAH OUR GROUPS) */}
+      <section className="w-full">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          className="flex flex-col gap-8 md:gap-12"
+        >
+          <div className="flex flex-col gap-3 md:gap-4">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
+              <Translate text="Our Social Media" />
+            </h2>
+            <div className="h-1 w-16 md:w-24 bg-gradient-to-r from-emerald-500 to-pink-500 rounded-full"></div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            {socialCards.map((card, i) => (
+              <motion.div
+                key={card.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="group relative bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-800/60 border border-white/10 rounded-[2rem] md:rounded-[2.5rem] p-6 sm:p-8 lg:p-10 transition-all duration-300 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="mb-4 md:mb-6 p-3 md:p-4 rounded-2xl bg-white/5 flex justify-between w-full items-start">
+                    <div>{card.icon}</div>
+                    <div className={cn("px-3 py-1 rounded-full text-xs font-bold self-start uppercase tracking-wider", card.badgeColor)}>
+                      {card.badge}
+                    </div>
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold mb-2 md:mb-3">
+                    <Translate text={card.name} />
+                  </h3>
+                  <p className="text-sm md:text-base lg:text-lg text-zinc-400 mb-8 md:mb-10 leading-relaxed">
+                    <Translate text={card.description} />
+                  </p>
+                </div>
+
+                <a
+                  href={card.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "inline-flex items-center text-xs sm:text-sm font-bold tracking-widest uppercase transition-colors px-5 md:px-6 py-2 md:py-3 rounded-full self-start",
+                    card.btnColor
+                  )}
+                >
+                  <Translate text="Visit Link" />
+                  <motion.span
+                    className="ml-2 inline-block"
+                    initial={{ x: 0, y: 0 }}
+                    whileHover={{ x: 3, y: -3 }}
+                  >
+                    <ArrowUpRight size={16} />
+                  </motion.span>
+                </a>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
       </section>
