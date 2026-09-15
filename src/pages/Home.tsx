@@ -21,7 +21,9 @@ const socialCards = [
     name: 'WhatsApp Channel',
     description: 'Join our official WhatsApp channel to get the latest announcements, updates, and community news directly.',
     url: 'https://whatsapp.com/channel/0029VbDwC12EAKWHQHBHmk0t',
-    icon: <MessageSquare size={40} className="mb-4 text-emerald-400" />,
+    icon: <svg className="w-10 h-10 mb-4 fill-emerald-400" viewBox="0 0 24 24">
+        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+      </svg>,
     badge: 'COMMUNITY',
     badgeColor: 'bg-emerald-500/20 text-emerald-400',
     btnColor: 'bg-emerald-500/10 text-emerald-400 group-hover:text-emerald-300'
@@ -31,7 +33,9 @@ const socialCards = [
     name: 'TikTok Official',
     description: 'Follow our official TikTok account to watch community highlights, fun edits, and event announcements.',
     url: 'https://www.tiktok.com/@furrysocietygroup?_r=1&_t=ZS-99jzCZUZZu4',
-    icon: <Video size={40} className="mb-4 text-pink-400" />,
+    icon: <svg className="w-10 h-10 mb-4 fill-pink-400" viewBox="0 0 24 24">
+        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.97v7.19c0 1.88-.41 3.77-1.42 5.33-1.05 1.62-2.65 2.87-4.5 3.44-1.9.58-4.01.44-5.8-.38-1.78-.82-3.23-2.28-4.07-4.06-.86-1.83-1.02-3.98-.46-5.91.56-1.92 1.87-3.56 3.61-4.52 1.75-.96 3.86-1.19 5.76-.64v4.3c-1.08-.43-2.31-.32-3.28.27-.97.59-1.57 1.66-1.57 2.8 0 1.13.58 2.21 1.55 2.81.97.6 2.22.71 3.3.29 1.07-.42 1.8-1.47 1.84-2.62.02-1.97.01-3.94.01-5.91V.02z"/>
+      </svg>,
     badge: 'OFFICIAL',
     badgeColor: 'bg-pink-500/20 text-pink-400',
     btnColor: 'bg-pink-500/10 text-pink-400 group-hover:text-pink-300'
