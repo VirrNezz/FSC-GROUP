@@ -18,13 +18,13 @@ const iconMap: Record<string, React.ReactNode> = {
 const socialLinks = [
   { 
     name: 'WhatsApp', 
-    url: 'https://chat.whatsapp.com/', 
+    url: 'https://whatsapp.com/channel/0029VbDwC12EAKWHQHBHmk0t', 
     icon: <MessageSquare size={16} className="text-emerald-400" />, 
     color: 'hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300' 
   },
   { 
     name: 'TikTok', 
-    url: 'https://tiktok.com/', 
+    url: 'https://www.tiktok.com/@furrysocietygroup?_r=1&_t=ZS-99jzCZUZZu4', 
     icon: <Video size={16} className="text-pink-400" />, 
     color: 'hover:border-pink-500/50 hover:bg-pink-500/10 hover:text-pink-300' 
   },
