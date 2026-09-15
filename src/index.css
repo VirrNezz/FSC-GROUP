@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
-/* Custom Cursor Set: Changed Puro */
+/* Custom Cursor Set: Full Collection */
 @media (pointer: fine) {
-  /* Kursor Standar untuk seluruh halaman */
+  /* 1. Kursor Standar untuk seluruh halaman */
   body, html {
     cursor: url('/cursor/Normal.cur'), auto !important;
   }
 
-  /* Kursor saat hover ke elemen interaktif (tombol, link, menu) */
+  /* 2. Link & Tombol Interaktif */
   a, 
   button, 
   input, 
@@ -16,5 +16,41 @@
   [role="button"],
   .group {
     cursor: url('/cursor/LinkSelect.cur'), pointer !important;
+  }
+
+  /* 3. Elemen Teks (Pencil) */
+  p, span, h1, h2, h3, h4, h5, h6, label {
+    cursor: url('/cursor/Pencil.cur'), text !important;
+  }
+
+  /* 4. Elemen Card, Box Utama, atau Grid (Move / Geser) */
+  .bg-white\/5, 
+  .backdrop-blur-md,
+  section {
+    cursor: url('/cursor/Move.cur'), default !important;
+  }
+
+  /* 5. Bagian Komunitas / Member (PeopleSelect) */
+  .group-hover\:text-blue-300,
+  [class*="badge"] {
+    cursor: url('/cursor/PeopleSelect.cur'), pointer !important;
+  }
+
+  /* 6. Bagian URL / Link Eksternal / Lokasi (LocationSelect) */
+  a[target="_blank"] {
+    cursor: url('/cursor/LocationSelect.cur'), pointer !important;
+  }
+
+  /* 7. Elemen Disabled / Tidak Bisa Diklik (Unavailable) */
+  button:disabled, 
+  input:disabled,
+  .opacity-50 {
+    cursor: url('/cursor/Unavailable.cur'), not-allowed !important;
+  }
+
+  /* 8. Elemen Dekoratif / Garis / Pemisah (Diagonal Resizer) */
+  hr, 
+  .h-1 {
+    cursor: url('/cursor/Diagonal1.cur'), nesw-resize !important;
   }
 }
