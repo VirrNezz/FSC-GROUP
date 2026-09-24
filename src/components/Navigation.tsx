@@ -11,6 +11,7 @@ const links = [
   { name: 'FSC Group', path: '/group/fsc', gradient: 'from-slate-100 via-slate-300 to-slate-400' },
   { name: 'FC Group', path: '/group/fc', gradient: 'from-blue-400 via-blue-600 to-blue-900' },
   { name: '2FT Group', path: '/group/2ft', gradient: 'from-zinc-100 via-zinc-400 to-zinc-600' },
+  { name: 'Partners', path: '/partners', gradient: 'from-emerald-300 via-teal-200 to-white' },
   { name: 'Admins', path: '/admin', gradient: 'from-blue-400 via-blue-200 to-white' },
 ];
 
@@ -19,7 +20,7 @@ export function Navigation() {
   const location = useLocation();
   const { user, loginWithGoogle, logout } = useAuth();
 
-  const isDarkBg = ['/', '/group/fc', '/group/2ft', '/admin'].includes(location.pathname);
+  const isDarkBg = ['/', '/group/fc', '/group/2ft', '/admin', '/partners'].includes(location.pathname);
   const iconColor = isOpen ? 'text-white' : (isDarkBg ? 'text-white' : 'text-slate-900');
 
   return (

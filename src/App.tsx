@@ -9,6 +9,7 @@ import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Group } from './pages/Group';
 import { Admin } from './pages/Admin';
+import { Partners } from './pages/Partners';
 
 // 1. In-Memory Cache agar tidak menembak API berulang-ulang untuk teks yang sama
 const translationCache: Record<string, string> = {};
@@ -91,6 +92,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/group/:id" element={<Group />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/partners" element={<Partners />} />
           </Routes>
         </Layout>
       </BrowserRouter>
