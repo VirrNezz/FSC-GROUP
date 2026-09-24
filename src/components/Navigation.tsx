@@ -11,7 +11,7 @@ const links = [
   { name: 'FSC Group', path: '/group/fsc', gradient: 'from-slate-100 via-slate-300 to-slate-400' },
   { name: 'FC Group', path: '/group/fc', gradient: 'from-blue-400 via-blue-600 to-blue-900' },
   { name: '2FT Group', path: '/group/2ft', gradient: 'from-zinc-100 via-zinc-400 to-zinc-600' },
-  { name: 'Partners', path: '/partners', gradient: 'from-emerald-300 via-teal-200 to-white' },
+  { name: 'Partners', path: '/partner', gradient: 'from-emerald-300 via-teal-200 to-white' },
   { name: 'Admins', path: '/admin', gradient: 'from-blue-400 via-blue-200 to-white' },
 ];
 
