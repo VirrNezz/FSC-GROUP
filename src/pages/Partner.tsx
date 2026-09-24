@@ -8,37 +8,35 @@ const partnerList = [
   {
     id: 'partner-1',
     name: '『𝙁𝙎𝘼』🜲𝐒𝐇𝐀𝐑𝐊𝐧𝐨𝐱𝐳𝐚🜲💎🔥',
-    avatar: '/background/home.png',
+    avatar: '/profiles/profile-fsa.jpeg',
     description: 'Komunitas partner resmi yang bekerja sama dengan FSG dalam mendukung event dan kegiatan kreatif.',
     category: 'COMMUNITY PARTNER',
     categoryColor: 'bg-blue-500/20 text-blue-400',
     links: [
       {
-        label: 'Website',
+        label: 'Tiktok',
         url: 'https://example.com',
-        icon: <Globe size={16} />,
+        icon: <svg className="w-10 h-10 mb-4 fill-pink-400" viewBox="0 0 24 24">
+        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.97v7.19c0 1.88-.41 3.77-1.42 5.33-1.05 1.62-2.65 2.87-4.5 3.44-1.9.58-4.01.44-5.8-.38-1.78-.82-3.23-2.28-4.07-4.06-.86-1.83-1.02-3.98-.46-5.91.56-1.92 1.87-3.56 3.61-4.52 1.75-.96 3.86-1.19 5.76-.64v4.3c-1.08-.43-2.31-.32-3.28.27-.97.59-1.57 1.66-1.57 2.8 0 1.13.58 2.21 1.55 2.81.97.6 2.22.71 3.3.29 1.07-.42 1.8-1.47 1.84-2.62.02-1.97.01-3.94.01-5.91V.02z"/>
+      </svg>,
         btnColor: 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
-      },
-      {
-        label: 'WhatsApp',
-        url: 'https://whatsapp.com',
-        icon: <MessageSquare size={16} />,
-        btnColor: 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
       }
     ]
   },
   {
     id: 'partner-2',
-    name: 'Furry Creative Hub',
-    avatar: '/background/home.png',
+    name: 'PROJECT SEVENX',
+    avatar: '/profiles/profile-sevenx.jpeg',
     description: 'Wadah kolaborasi karya seni, desain, dan project kreatif bersama Furry Society Group.',
-    category: 'MEDIA PARTNER',
+    category: 'FSC PARTNER',
     categoryColor: 'bg-pink-500/20 text-pink-400',
     links: [
       {
         label: 'Visit Link',
         url: 'https://tiktok.com',
-        icon: <Globe size={16} />,
+        icon: <svg className="w-10 h-10 mb-4 fill-pink-400" viewBox="0 0 24 24">
+        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.97v7.19c0 1.88-.41 3.77-1.42 5.33-1.05 1.62-2.65 2.87-4.5 3.44-1.9.58-4.01.44-5.8-.38-1.78-.82-3.23-2.28-4.07-4.06-.86-1.83-1.02-3.98-.46-5.91.56-1.92 1.87-3.56 3.61-4.52 1.75-.96 3.86-1.19 5.76-.64v4.3c-1.08-.43-2.31-.32-3.28.27-.97.59-1.57 1.66-1.57 2.8 0 1.13.58 2.21 1.55 2.81.97.6 2.22.71 3.3.29 1.07-.42 1.8-1.47 1.84-2.62.02-1.97.01-3.94.01-5.91V.02z"/>
+      </svg>,
         btnColor: 'bg-pink-500/10 text-pink-400 hover:bg-pink-500/20'
       }
     ]
