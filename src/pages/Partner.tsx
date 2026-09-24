@@ -7,7 +7,7 @@ import { Translate } from '../App';
 const partnerList = [
   {
     id: 'partner-1',
-    name: 'Example Community',
+    name: '『𝙁𝙎𝘼』🜲𝐒𝐇𝐀𝐑𝐊𝐧𝐨𝐱𝐳𝐚🜲💎🔥',
     avatar: '/background/home.png',
     description: 'Komunitas partner resmi yang bekerja sama dengan FSG dalam mendukung event dan kegiatan kreatif.',
     category: 'COMMUNITY PARTNER',
