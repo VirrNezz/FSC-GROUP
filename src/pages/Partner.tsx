@@ -9,7 +9,7 @@ const partnerList = [
     id: 'partner-1',
     name: '『𝙁𝙎𝘼』🜲𝐒𝐇𝐀𝐑𝐊𝐧𝐨𝐱𝐳𝐚🜲💎🔥',
     avatar: '/profiles/profile-fsa.jpeg',
-    description: 'Komunitas partner resmi yang bekerja sama dengan FSG dalam mendukung event dan kegiatan kreatif.',
+    description: 'Masih Nunggu Owner Bales Nanti Di Isi #Mdrex',
     category: 'COMMUNITY PARTNER',
     categoryColor: 'bg-blue-500/20 text-blue-400',
     links: [
@@ -27,7 +27,7 @@ const partnerList = [
     id: 'partner-2',
     name: 'PROJECT SEVENX',
     avatar: '/profiles/profile-sevenx.jpeg',
-    description: 'Wadah kolaborasi karya seni, desain, dan project kreatif bersama Furry Society Group.',
+    description: 'Masih Nunggu Owner Bales Nanti Di Isi #Mdrex',
     category: 'FSC PARTNER',
     categoryColor: 'bg-pink-500/20 text-pink-400',
     links: [
