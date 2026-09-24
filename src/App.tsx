@@ -92,7 +92,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/group/:id" element={<Group />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/partners" element={<Partners />} />
+            <Route path="/partner" element={<Partners />} />
           </Routes>
         </Layout>
       </BrowserRouter>
