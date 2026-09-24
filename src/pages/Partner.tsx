@@ -3,12 +3,12 @@ import { motion } from 'motion/react';
 import { Handshake, ArrowUpRight, Globe, MessageSquare } from 'lucide-react';
 import { Translate } from '../App';
 
-// --- DATA PARTNER (BISA KAMU EDIT / TAMBAH SENDIRI) ---
+// --- DATA PARTNER ---
 const partnerList = [
   {
     id: 'partner-1',
     name: 'Example Community',
-    avatar: '/background/home.png', // Ganti dengan path logo partner di folder public/
+    avatar: '/background/home.png',
     description: 'Komunitas partner resmi yang bekerja sama dengan FSG dalam mendukung event dan kegiatan kreatif.',
     category: 'COMMUNITY PARTNER',
     categoryColor: 'bg-blue-500/20 text-blue-400',
@@ -30,7 +30,7 @@ const partnerList = [
   {
     id: 'partner-2',
     name: 'Furry Creative Hub',
-    avatar: '/background/home.png', // Ganti dengan logo partner
+    avatar: '/background/home.png',
     description: 'Wadah kolaborasi karya seni, desain, dan project kreatif bersama Furry Society Group.',
     category: 'MEDIA PARTNER',
     categoryColor: 'bg-pink-500/20 text-pink-400',
@@ -47,12 +47,14 @@ const partnerList = [
 
 export function Partners() {
   return (
-    <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 flex flex-col gap-12">
+    /* Ditambahkan pt-28 pb-16 & relative z-10 agar tidak tertutup header/nav */
+    <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16 md:pt-36 md:pb-24 flex flex-col gap-12 relative z-10">
+      
       {/* Header Halaman */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.5 }}
         className="flex flex-col gap-4 max-w-3xl"
       >
         <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 self-start backdrop-blur-md">
@@ -74,10 +76,10 @@ export function Partners() {
         {partnerList.map((partner, i) => (
           <motion.div
             key={partner.id}
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1 }}
+            /* DIGANTI DARI whileInView KETIK ANIMATE AGAR LANGSUNG MUNCUL */
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: i * 0.1 }}
             className="group relative bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-800/60 border border-white/10 rounded-[2rem] md:rounded-[2.5rem] p-6 sm:p-8 lg:p-10 transition-all duration-300 flex flex-col justify-between gap-6"
           >
             <div>
