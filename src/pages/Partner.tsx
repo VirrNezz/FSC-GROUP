@@ -9,17 +9,23 @@ const partnerList = [
     id: 'partner-1',
     name: '『𝙁𝙎𝘼』🜲𝐒𝐇𝐀𝐑𝐊𝐧𝐨𝐱𝐳𝐚🜲💎🔥',
     avatar: '/profiles/profile-fsa.jpeg',
-    description: 'Masih Nunggu Owner Bales Nanti Di Isi #Mdrex',
+    description: 'Untuk masuk 『𝙁𝙎𝘼』🜲𝐒𝐇𝐀𝐑𝐊𝐧𝐨𝐱𝐳𝐚🜲 atau ⟬𝗔𝗙𝗖𝗙⟭  mohon ikut seleksi dulu ya jika ada masalah mohon lapor ke @fsa.sharknoxza.real atau ke @yanzsukfurr4 ya,terima kasih',
     category: 'COMMUNITY PARTNER',
     categoryColor: 'bg-blue-500/20 text-blue-400',
     links: [
       {
         label: 'Tiktok',
-        url: 'https://example.com',
+        url: 'https://www.tiktok.com/@fsa.sharknoxza.real?_r=1&_t=ZS-99ujbcAIFaG',
         icon: <svg className="w-10 h-10 mb-4 fill-pink-400" viewBox="0 0 24 24">
         <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.97v7.19c0 1.88-.41 3.77-1.42 5.33-1.05 1.62-2.65 2.87-4.5 3.44-1.9.58-4.01.44-5.8-.38-1.78-.82-3.23-2.28-4.07-4.06-.86-1.83-1.02-3.98-.46-5.91.56-1.92 1.87-3.56 3.61-4.52 1.75-.96 3.86-1.19 5.76-.64v4.3c-1.08-.43-2.31-.32-3.28.27-.97.59-1.57 1.66-1.57 2.8 0 1.13.58 2.21 1.55 2.81.97.6 2.22.71 3.3.29 1.07-.42 1.8-1.47 1.84-2.62.02-1.97.01-3.94.01-5.91V.02z"/>
       </svg>,
         btnColor: 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+      },
+      {
+        label: 'WhatsApp (Close : 21:00 - 07:00)',
+        url: 'https://chat.whatsapp.com/CWjrY9YnqhA8UEQtPIY05R', // Ganti link WhatsApp
+        icon: <MessageSquare size={16} />,
+        btnColor: 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
       }
     ]
   },
@@ -33,7 +39,7 @@ const partnerList = [
     links: [
       {
         label: 'Visit Link',
-        url: 'https://tiktok.com',
+        url: 'https://tiktok.com/@projectsevenx',
         icon: <svg className="w-10 h-10 mb-4 fill-pink-400" viewBox="0 0 24 24">
         <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.97v7.19c0 1.88-.41 3.77-1.42 5.33-1.05 1.62-2.65 2.87-4.5 3.44-1.9.58-4.01.44-5.8-.38-1.78-.82-3.23-2.28-4.07-4.06-.86-1.83-1.02-3.98-.46-5.91.56-1.92 1.87-3.56 3.61-4.52 1.75-.96 3.86-1.19 5.76-.64v4.3c-1.08-.43-2.31-.32-3.28.27-.97.59-1.57 1.66-1.57 2.8 0 1.13.58 2.21 1.55 2.81.97.6 2.22.71 3.3.29 1.07-.42 1.8-1.47 1.84-2.62.02-1.97.01-3.94.01-5.91V.02z"/>
       </svg>,
