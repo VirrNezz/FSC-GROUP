@@ -35,7 +35,7 @@ const partnerList = [
     id: 'partner-2',
     name: 'PROJECT SEVENX',
     avatar: '/profiles/profile-sevenx.jpeg',
-    description: 'Masih Nunggu Owner Bales Nanti Di Isi #Mdrex',
+    description: 'project SevenX Foundernya RezzX - apa saja',
     category: 'FSC PARTNER',
     categoryColor: 'bg-pink-500/20 text-pink-400',
     links: [
