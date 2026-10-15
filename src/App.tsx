@@ -10,6 +10,7 @@ import { Home } from './pages/Home';
 import { Group } from './pages/Group';
 import { Admin } from './pages/Admin';
 import { Partners } from './pages/Partner';
+import { NotFound } from './pages/NotFound';
 
 // 1. In-Memory Cache agar tidak menembak API berulang-ulang untuk teks yang sama
 const translationCache: Record<string, string> = {};
@@ -93,6 +94,9 @@ export default function App() {
             <Route path="/group/:id" element={<Group />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/partner" element={<Partners />} />
+            
+            {/* Catch-all Route untuk Halaman 404 Not Found */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
       </BrowserRouter>
