@@ -8,6 +8,7 @@ import { Translate } from '../App';
 
 interface Song {
   id: string;
+  youtubeId?: string;
   title: string;
   artist: string;
   cover: string;
@@ -38,16 +39,13 @@ export function Music() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // State Playlist & Drawer Ujung Kiri
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>([]);
   const [inputPassword, setInputPassword] = useState<{ [key: string]: string }>({});
 
-  // YouTube Player Ref & State
   const playerRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
 
-  // Default Playlists
   const [playlists, setPlaylists] = useState<Playlist[]>([
     {
       id: 'pl-1',
@@ -64,7 +62,7 @@ export function Music() {
     }
   ]);
 
-  // Load YouTube IFrame API secara dinamis
+  // Load YouTube IFrame API
   useEffect(() => {
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -74,63 +72,77 @@ export function Music() {
     }
   }, []);
 
-  // Inisialisasi Player YouTube Tersembunyi berdasarkan Judul + Artis
-  useEffect(() => {
-    if (!currentSong) return;
-
-    const createPlayer = () => {
-      const querySearch = `${currentSong.title} ${currentSong.artist}`;
-
-      if (playerRef.current && playerRef.current.loadPlaylist) {
-        playerRef.current.loadPlaylist({
-          listType: 'search',
-          list: querySearch,
-          index: 0
-        });
-        setIsPlaying(true);
-        return;
+  // Ambil YouTube Video ID via Proxy publik bebas CORS
+  const fetchYouTubeId = async (title: string, artist: string): Promise<string | null> => {
+    try {
+      const query = encodeURIComponent(`${title} ${artist} audio`);
+      const res = await fetch(`https://yt.drgnz.workers.dev/?q=${query}`);
+      const data = await res.json();
+      if (data && data[0] && data[0].id) {
+        return data[0].id;
       }
+    } catch (e) {
+      console.warn("Proxy 1 fail, trying Fallback...");
+    }
 
-      if (window.YT && window.YT.Player) {
-        playerRef.current = new window.YT.Player('youtube-hidden-player', {
-          height: '0',
-          width: '0',
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            disablekb: 1,
-            modestbranding: 1,
-            listType: 'search',
-            list: querySearch
+    try {
+      const query = encodeURIComponent(`${title} ${artist}`);
+      const res = await fetch(`https://invidious.no-cors.workers.dev/api/v1/search?q=${query}&type=video`);
+      const data = await res.json();
+      if (data && data[0] && data[0].videoId) {
+        return data[0].videoId;
+      }
+    } catch (e) {
+      console.error("Gagal mengambil YouTube ID:", e);
+    }
+    return null;
+  };
+
+  // Putar lagu berdasarkan YouTube ID
+  const playSong = async (song: Song) => {
+    setCurrentSong(song);
+    
+    let ytId = song.youtubeId;
+    if (!ytId) {
+      ytId = await fetchYouTubeId(song.title, song.artist) || 'dQw4w9WgXcQ';
+    }
+
+    if (playerRef.current && playerRef.current.loadVideoById) {
+      playerRef.current.loadVideoById(ytId);
+      playerRef.current.playVideo();
+      setIsPlaying(true);
+    } else if (window.YT && window.YT.Player) {
+      playerRef.current = new window.YT.Player('youtube-hidden-player', {
+        height: '1',
+        width: '1',
+        videoId: ytId,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          origin: window.location.origin
+        },
+        events: {
+          onReady: (event: any) => {
+            event.target.playVideo();
+            setIsPlaying(true);
           },
-          events: {
-            onReady: (event: any) => {
-              event.target.playVideo();
+          onStateChange: (event: any) => {
+            if (event.data === 1) {
               setIsPlaying(true);
-            },
-            onStateChange: (event: any) => {
-              if (event.data === 1) {
-                setIsPlaying(true);
-                if (playerRef.current.getDuration) {
-                  setDuration(playerRef.current.getDuration());
-                }
-              } else if (event.data === 2 || event.data === 0) {
-                setIsPlaying(false);
+              if (playerRef.current.getDuration) {
+                setDuration(playerRef.current.getDuration());
               }
+            } else if (event.data === 2 || event.data === 0) {
+              setIsPlaying(false);
             }
           }
-        });
-      }
-    };
-
-    if (window.YT && window.YT.Player) {
-      createPlayer();
-    } else {
-      window.onYouTubeIframeAPIReady = createPlayer;
+        }
+      });
     }
-  }, [currentSong]);
+  };
 
-  // Update timer (Current Time & Duration)
+  // Sync Timer Audio
   useEffect(() => {
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
@@ -147,7 +159,7 @@ export function Music() {
     return () => clearInterval(intervalRef.current);
   }, [isPlaying]);
 
-  // Search Song via iTunes API (Anti CORS & Cepat)
+  // Search Song via iTunes API
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -167,7 +179,7 @@ export function Music() {
 
         setSearchResults(mappedSongs);
         if (mappedSongs.length > 0 && !currentSong) {
-          setCurrentSong(mappedSongs[0]);
+          playSong(mappedSongs[0]);
         }
       }
     } catch (err) {
@@ -175,11 +187,6 @@ export function Music() {
     } finally {
       setIsSearching(false);
     }
-  };
-
-  const playSong = (song: Song) => {
-    setCurrentSong(song);
-    setIsPlaying(true);
   };
 
   const togglePlay = () => {
@@ -193,7 +200,6 @@ export function Music() {
     }
   };
 
-  // Skip Maju / Mundur 5 Detik
   const seekBy = (seconds: number) => {
     if (!playerRef.current || !playerRef.current.getCurrentTime) return;
     const newTime = Math.min(
@@ -204,7 +210,6 @@ export function Music() {
     setCurrentTime(newTime);
   };
 
-  // Seek bar manual
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const targetTime = Number(e.target.value);
     if (playerRef.current && playerRef.current.seekTo) {
@@ -243,14 +248,13 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
-      {/* HIDDEN YOUTUBE IFRAME (PEMUTAR BACKGROUND FULL AUDIO) */}
-      <div className="hidden pointer-events-none opacity-0 w-0 h-0 overflow-hidden">
+      {/* HIDDEN YOUTUBE IFRAME PLAYER (Ditaruh diluar area pandang agar Autoplay diizinkan) */}
+      <div className="fixed -bottom-96 -right-96 w-1 h-1 opacity-0 pointer-events-none overflow-hidden">
         <div id="youtube-hidden-player" />
       </div>
 
-      {/* Top Controls Bar: Tombol Playlist di Ujung Kiri + Search Bar */}
+      {/* Top Controls Bar */}
       <div className="flex items-center justify-between gap-4">
-        {/* Tombol Playlist Kecil di Ujung Kiri */}
         <button
           onClick={() => setIsPlaylistOpen(!isPlaylistOpen)}
           className="flex items-center gap-2 px-4 py-3 rounded-full bg-zinc-900/80 border border-white/10 hover:bg-white/10 text-white backdrop-blur-md transition-all active:scale-95 shadow-lg shrink-0"
@@ -260,7 +264,6 @@ export function Music() {
           <span className="text-xs font-bold hidden sm:inline"><Translate text="Playlists" /></span>
         </button>
 
-        {/* Search Bar ala Spotify */}
         <form onSubmit={handleSearch} className="relative flex-1 max-w-xl">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
           <input
@@ -273,21 +276,18 @@ export function Music() {
         </form>
       </div>
 
-      {/* HERO BANNER OTOMATIS BERDASARKAN LAGU YANG DIPILIH */}
+      {/* HERO BANNER */}
       {currentSong ? (
         <div className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/15 bg-zinc-950 p-6 sm:p-10 shadow-2xl flex flex-col md:flex-row items-center gap-8">
-          {/* Blurred Glow Background */}
           <div 
             className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-125 pointer-events-none"
             style={{ backgroundImage: `url(${currentSong.cover})` }}
           />
 
-          {/* Album Cover Art */}
           <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shrink-0">
             <img src={currentSong.cover} alt={currentSong.title} className="w-full h-full object-cover" />
           </div>
 
-          {/* Info & Player Controls Musicolet Style */}
           <div className="relative z-10 flex-1 w-full flex flex-col gap-4 text-center md:text-left">
             <div>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full inline-block mb-2">
@@ -301,7 +301,6 @@ export function Music() {
               </p>
             </div>
 
-            {/* Seek Bar + Timer Realtime */}
             <div className="flex flex-col gap-1.5 w-full pt-2">
               <input
                 type="range"
@@ -317,9 +316,7 @@ export function Music() {
               </div>
             </div>
 
-            {/* Controls: Play/Pause & Jump +/- 5 Detik */}
             <div className="flex items-center justify-center md:justify-start gap-4 pt-1">
-              {/* Mundur 5s */}
               <button
                 onClick={() => seekBy(-5)}
                 className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
@@ -329,7 +326,6 @@ export function Music() {
                 <span className="text-[10px] font-bold ml-1">5s</span>
               </button>
 
-              {/* Play / Pause */}
               <button
                 onClick={togglePlay}
                 className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl"
@@ -337,7 +333,6 @@ export function Music() {
                 {isPlaying ? <Pause size={24} className="fill-black" /> : <Play size={24} className="fill-black ml-1" />}
               </button>
 
-              {/* Maju 5s */}
               <button
                 onClick={() => seekBy(5)}
                 className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
@@ -350,14 +345,13 @@ export function Music() {
           </div>
         </div>
       ) : (
-        /* Empty State */
         <div className="w-full rounded-[2.5rem] border border-white/10 bg-zinc-900/30 p-8 text-center backdrop-blur-md">
           <MusicIcon size={48} className="mx-auto text-zinc-600 mb-2" />
           <p className="text-zinc-400 text-sm">Ketik nama lagu di atas untuk memutar musik pilihanmu.</p>
         </div>
       )}
 
-      {/* HASIL PENCARIAN (COMPACT LIST ALA MUSICOLET) */}
+      {/* HASIL PENCARIAN */}
       {searchResults.length > 0 && (
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -411,7 +405,7 @@ export function Music() {
         </div>
       )}
 
-      {/* DRAWER / MODAL PLAYLIST (DARI TOMBOL UJUNG KIRI) */}
+      {/* DRAWER PLAYLIST */}
       <AnimatePresence>
         {isPlaylistOpen && (
           <motion.div
