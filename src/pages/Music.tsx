@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
   RotateCcw, RotateCw, ListMusic, Key, Plus, Volume2, VolumeX, Trash2,
-  Repeat, SkipBack, SkipForward, Sparkles
+  Repeat, SkipBack, SkipForward
 } from 'lucide-react';
 import { Translate } from '../App';
 import { useMusic } from '../context/MusicContext';
+import { useAuth } from '../hooks/useAuth';
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
 export function Music() {
+  const { user } = useAuth();
+
   const {
     currentSong, isPlaying, currentTime, duration, volume, isRepeat, playlists,
     playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist
@@ -18,9 +21,12 @@ export function Music() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [autoCorrectText, setAutoCorrectText] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // State Drawer & Form Playlist Baru
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
@@ -32,7 +38,39 @@ export function Music() {
   const [newPlPassword, setNewPlPassword] = useState('');
   const [showAddPlForm, setShowAddPlForm] = useState(false);
 
-  // Kontrol Volume
+  // Fetch Rekomendasi/Saran Ejaan dari YouTube Suggest API saat ngetik
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length > 1) {
+        fetch(`https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(searchQuery)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data[1]) {
+              setSuggestions(data[1]);
+              setShowSuggestions(true);
+            }
+          })
+          .catch(() => setSuggestions([]));
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Tutup dropdown rekomendasi pas klik di luar search bar
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVol = Number(e.target.value);
     setIsMuted(newVol === 0);
@@ -49,10 +87,9 @@ export function Music() {
     }
   };
 
-  // Search Song via YouTube Data API v3
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
+  // Jalankan pencarian lagu
+  const executeSearch = async (query: string) => {
+    if (!query.trim()) return;
 
     if (!YOUTUBE_API_KEY) {
       alert("API Key belum diset di file .env!");
@@ -60,8 +97,9 @@ export function Music() {
     }
 
     setIsSearching(true);
+    setShowSuggestions(false);
     try {
-      const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(searchQuery + ' audio')}&type=video&key=${YOUTUBE_API_KEY}`;
+      const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query + ' audio')}&type=video&key=${YOUTUBE_API_KEY}`;
       const res = await fetch(endpoint);
       const data = await res.json();
 
@@ -74,15 +112,6 @@ export function Music() {
         }));
 
         setSearchResults(mappedSongs);
-
-        // Banner Auto-Correct Imut
-        const topTitle = mappedSongs[0].title;
-        if (topTitle.toLowerCase() !== searchQuery.toLowerCase()) {
-          setAutoCorrectText(topTitle);
-        } else {
-          setAutoCorrectText(null);
-        }
-
         playSong(mappedSongs[0], mappedSongs);
       } else {
         alert("Lagu tidak ditemukan!");
@@ -94,6 +123,16 @@ export function Music() {
     }
   };
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeSearch(searchQuery);
+  };
+
+  const handleSelectSuggestion = (text: string) => {
+    setSearchQuery(text);
+    executeSearch(text);
+  };
+
   const formatTime = (secs: number) => {
     if (isNaN(secs)) return '0:00';
     const m = Math.floor(secs / 60);
@@ -101,7 +140,6 @@ export function Music() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // CRUD Firebase Playlist
   const handleCreatePlaylist = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlName.trim()) return;
@@ -119,6 +157,11 @@ export function Music() {
   };
 
   const handleDeletePlaylist = async (playlistId: string) => {
+    if (!user) {
+      alert("Akses ditolak! Hanya admin terdaftar yang dapat menghapus playlist.");
+      return;
+    }
+
     if (!confirm("Yakin ingin menghapus playlist ini?")) return;
     try {
       await deletePlaylist(playlistId);
@@ -141,10 +184,9 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-6 relative z-10">
       
-      {/* Top Controls Bar (Playlist + Volume + Search) */}
+      {/* Top Controls Bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
         
-        {/* Tombol Playlist + Slider Volume */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsPlaylistOpen(!isPlaylistOpen)}
@@ -155,7 +197,6 @@ export function Music() {
             <span className="text-xs font-bold hidden sm:inline"><Translate text="Playlists" /></span>
           </button>
 
-          {/* Volume Control Slider */}
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-full bg-zinc-900/80 border border-white/10 backdrop-blur-md">
             <button onClick={toggleMute} className="text-zinc-400 hover:text-white transition-colors">
               {isMuted || volume === 0 ? <VolumeX size={18} className="text-red-400" /> : <Volume2 size={18} className="text-purple-400" />}
@@ -172,35 +213,44 @@ export function Music() {
           </div>
         </div>
 
-        {/* Search Input */}
-        <form onSubmit={handleSearch} className="relative flex-1 max-w-xl min-w-[200px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari lagu di Music Lounge..."
-            className="w-full pl-11 pr-4 py-3 rounded-full bg-zinc-900/60 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-500 backdrop-blur-md transition-all"
-          />
-        </form>
-      </div>
+        {/* Search Input dengan Dropdown Rekomendasi YouTube */}
+        <div ref={searchContainerRef} className="relative flex-1 max-w-xl min-w-[200px]">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+              placeholder="Cari lagu di Music Lounge..."
+              className="w-full pl-11 pr-4 py-3 rounded-full bg-zinc-900/60 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-500 backdrop-blur-md transition-all"
+            />
+          </form>
 
-      {/* BANNER AUTO CORRECT IMUT */}
-      <AnimatePresence>
-        {autoCorrectText && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="w-full bg-purple-500/15 border border-purple-500/30 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2 text-xs text-purple-200 shadow-lg"
-          >
-            <Sparkles size={16} className="text-purple-400 shrink-0 animate-pulse" />
-            <p className="truncate">
-              Menampilkan hasil terbaik untuk: <span className="font-bold text-white italic">"{autoCorrectText}"</span>
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {/* DROPDOWN REKOMENDASI PENCARIAN ALALA YOUTUBE */}
+          <AnimatePresence>
+            {showSuggestions && suggestions.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                className="absolute left-0 right-0 top-full mt-2 bg-zinc-950/95 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl overflow-hidden z-50 py-2"
+              >
+                {suggestions.map((item, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleSelectSuggestion(item)}
+                    className="px-4 py-2.5 hover:bg-white/10 cursor-pointer flex items-center gap-3 text-xs text-zinc-200 transition-colors"
+                  >
+                    <Search size={14} className="text-purple-400 shrink-0" />
+                    <span className="truncate">{item}</span>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
 
       {/* HERO BANNER MUSICOLET */}
       {currentSong ? (
@@ -227,7 +277,7 @@ export function Music() {
               </p>
             </div>
 
-            {/* Seek Bar + Time Slider */}
+            {/* Seek Bar */}
             <div className="flex flex-col gap-1.5 w-full pt-2">
               <input
                 type="range"
@@ -243,10 +293,8 @@ export function Music() {
               </div>
             </div>
 
-            {/* Custom Control Buttons (Repeat, Prev, Skip -5s, Play/Pause, Skip +5s, Next) */}
+            {/* Control Buttons */}
             <div className="flex items-center justify-center md:justify-start gap-3 pt-1 flex-wrap">
-              
-              {/* Repeat Button */}
               <button
                 onClick={toggleRepeat}
                 className={`p-3 rounded-full border transition-all active:scale-90 ${
@@ -259,26 +307,21 @@ export function Music() {
                 <Repeat size={18} />
               </button>
 
-              {/* Prev Song */}
               <button
                 onClick={playPrev}
                 className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90"
-                title="Lagu Sebelumnya"
               >
                 <SkipBack size={18} />
               </button>
 
-              {/* Mundur 5s */}
               <button
                 onClick={() => seekBy(-5)}
                 className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center"
-                title="Mundur 5 detik"
               >
                 <RotateCcw size={16} />
                 <span className="text-[10px] font-bold ml-1">5s</span>
               </button>
 
-              {/* Play / Pause */}
               <button
                 onClick={togglePlay}
                 className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl"
@@ -286,25 +329,20 @@ export function Music() {
                 {isPlaying ? <Pause size={24} className="fill-black" /> : <Play size={24} className="fill-black ml-1" />}
               </button>
 
-              {/* Maju 5s */}
               <button
                 onClick={() => seekBy(5)}
                 className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center"
-                title="Maju 5 detik"
               >
                 <span className="text-[10px] font-bold mr-1">5s</span>
                 <RotateCw size={16} />
               </button>
 
-              {/* Next Song */}
               <button
                 onClick={playNext}
                 className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90"
-                title="Lagu Selanjutnya"
               >
                 <SkipForward size={18} />
               </button>
-
             </div>
 
           </div>
@@ -384,7 +422,6 @@ export function Music() {
               </button>
             </div>
 
-            {/* Tombol Buat Playlist Baru */}
             <div>
               {!showAddPlForm ? (
                 <button
@@ -444,7 +481,6 @@ export function Music() {
               )}
             </div>
 
-            {/* List Playlist Real-time dari Database */}
             <div className="flex flex-col gap-4">
               {playlists.length === 0 ? (
                 <p className="text-xs text-zinc-500 text-center py-4">Belum ada playlist tersimpan di Firestore.</p>
@@ -459,13 +495,16 @@ export function Music() {
                           {pl.isLocked && !isUnlocked ? <Lock size={16} className="text-red-400" /> : <Unlock size={16} className="text-emerald-400" />}
                           <h4 className="font-bold text-sm text-white">{pl.name}</h4>
                         </div>
-                        <button
-                          onClick={() => handleDeletePlaylist(pl.id)}
-                          className="p-1 text-zinc-500 hover:text-red-400 transition-colors"
-                          title="Hapus Playlist"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        
+                        {user && (
+                          <button
+                            onClick={() => handleDeletePlaylist(pl.id)}
+                            className="p-1 text-zinc-500 hover:text-red-400 transition-colors"
+                            title="Hapus Playlist"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
 
                       {!isUnlocked ? (
