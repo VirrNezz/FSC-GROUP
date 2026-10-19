@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Lock, Unlock, Music as MusicIcon, 
-  ListMusic, Key, Plus
+  ListMusic, Key, Plus, Disc3
 } from 'lucide-react';
 import { Translate } from '../App';
 
@@ -144,7 +144,7 @@ export function Music() {
         </form>
       </div>
 
-      {/* HERO BANNER MUSICOLET */}
+      {/* HERO BANNER MUSICOLET (AUDIO ONLY MODE) */}
       {currentSong ? (
         <div className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/15 bg-zinc-950 p-6 sm:p-10 shadow-2xl flex flex-col md:flex-row items-center gap-8">
           <div 
@@ -152,14 +152,17 @@ export function Music() {
             style={{ backgroundImage: `url(${currentSong.cover})` }}
           />
 
-          <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shrink-0">
+          <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shrink-0 group">
             <img src={currentSong.cover} alt={currentSong.title} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Disc3 size={40} className="text-purple-400 animate-spin" style={{ animationDuration: '6s' }} />
+            </div>
           </div>
 
           <div className="relative z-10 flex-1 w-full flex flex-col gap-4 text-center md:text-left">
             <div>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full inline-block mb-2">
-                Now Playing (Full Audio)
+                Audio Stream (Full Version)
               </span>
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight line-clamp-1">
                 {currentSong.title}
@@ -169,15 +172,21 @@ export function Music() {
               </p>
             </div>
 
-            {/* EMBED YOUTUBE PLAYER RESMI (100% DURASI UTUH) */}
-            <div className="w-full h-36 rounded-2xl overflow-hidden border border-white/10 bg-black/60 mt-2">
+            {/* MINI AUDIO PLAYER (IFRAME TRANSPARAN TANPA TAMPILAN VIDEO) */}
+            <div className="w-full h-14 rounded-2xl border border-white/10 bg-black/40 overflow-hidden relative backdrop-blur-md flex items-center px-4 gap-3">
+              <Disc3 size={20} className="text-purple-400 animate-spin shrink-0" style={{ animationDuration: '4s' }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-zinc-200 truncate">Memutar audio dari YouTube...</p>
+                <p className="text-[10px] text-zinc-400 truncate">Gunakan kontrol pada pemutar di bawah jika diperlukan</p>
+              </div>
+
+              {/* Player Iframe Resmi YouTube yang disembunyikan secara visual */}
               <iframe
                 key={currentSong.id}
                 title={currentSong.title}
-                className="w-full h-full"
+                className="w-full h-full absolute inset-0 opacity-15 hover:opacity-100 transition-opacity z-10"
                 src={`https://www.youtube-nocookie.com/embed/${currentSong.id}?autoplay=1&controls=1`}
                 allow="autoplay; encrypted-media"
-                allowFullScreen
               />
             </div>
           </div>
