@@ -12,6 +12,8 @@ import { Admin } from './pages/Admin';
 import { Partners } from './pages/Partner';
 import { Music } from './pages/Music';
 import { NotFound } from './pages/NotFound';
+import { MusicProvider } from './context/MusicContext';
+import { MiniPlayer } from './components/MiniPlayer';
 
 // 1. In-Memory Cache agar tidak menembak API berulang-ulang untuk teks yang sama
 const translationCache: Record<string, string> = {};
@@ -87,21 +89,26 @@ export default function App() {
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, toggleLang }}>
-      <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/group/:id" element={<Group />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/partner" element={<Partners />} />
-            <Route path="/music" element={<Music />} />
-            
-            {/* Catch-all Route untuk Halaman 404 Not Found */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
-      </BrowserRouter>
-    </LanguageContext.Provider>
+    <MusicProvider>
+      <LanguageContext.Provider value={{ lang, toggleLang }}>
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/group/:id" element={<Group />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/partner" element={<Partners />} />
+              <Route path="/music" element={<Music />} />
+              
+              {/* Catch-all Route untuk Halaman 404 Not Found */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+          
+          {/* Mini Popup Player yang bakal muncul di pojok bawah pas pindah halaman */}
+          <MiniPlayer />
+        </BrowserRouter>
+      </LanguageContext.Provider>
+    </MusicProvider>
   );
 }
