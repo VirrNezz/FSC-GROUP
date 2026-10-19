@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
-  RotateCcw, RotateCw, ListMusic, Key, Plus, Eye, EyeOff
+  RotateCcw, RotateCw, ListMusic, Key, Plus 
 } from 'lucide-react';
 import { Translate } from '../App';
 
@@ -11,6 +11,7 @@ interface Song {
   title: string;
   artist: string;
   cover: string;
+  streamUrl: string;
 }
 
 interface Playlist {
@@ -28,11 +29,14 @@ export function Music() {
   
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showPlayerVideo, setShowPlayerVideo] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>([]);
   const [inputPassword, setInputPassword] = useState<{ [key: string]: string }>({});
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([
     {
@@ -50,12 +54,50 @@ export function Music() {
     }
   ]);
 
+  // Handle Playback Lagu
   const playSong = (song: Song) => {
     setCurrentSong(song);
     setIsPlaying(true);
+    if (audioRef.current) {
+      audioRef.current.src = song.streamUrl;
+      audioRef.current.play().catch((err) => {
+        console.warn("Autoplay terhalang, klik tombol Play manual:", err);
+        setIsPlaying(false);
+      });
+    }
   };
 
-  // Search Song via iTunes API
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  // Skip Maju / Mundur 5 Detik
+  const seekBy = (seconds: number) => {
+    if (!audioRef.current) return;
+    const newTime = Math.min(
+      Math.max(audioRef.current.currentTime + seconds, 0),
+      duration
+    );
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const targetTime = Number(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = targetTime;
+      setCurrentTime(targetTime);
+    }
+  };
+
+  // Search Song via iTunes API (Langsung dapet stream audio & cover HD)
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -70,7 +112,8 @@ export function Music() {
           id: String(item.trackId),
           title: item.trackName,
           artist: item.artistName,
-          cover: item.artworkUrl100.replace('100x100bb', '600x600bb')
+          cover: item.artworkUrl100.replace('100x100bb', '600x600bb'),
+          streamUrl: item.previewUrl
         }));
 
         setSearchResults(mappedSongs);
@@ -81,6 +124,12 @@ export function Music() {
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   const unlockPlaylist = (playlistId: string, pass: string) => {
@@ -107,6 +156,14 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
+      {/* HTML5 AUDIO ENGINE (NATIVE & BEBAS ISU EMBED) */}
+      <audio
+        ref={audioRef}
+        onTimeUpdate={() => audioRef.current && setCurrentTime(audioRef.current.currentTime)}
+        onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)}
+        onEnded={() => setIsPlaying(false)}
+      />
+
       {/* Top Controls Bar */}
       <div className="flex items-center justify-between gap-4">
         <button
@@ -130,7 +187,7 @@ export function Music() {
         </form>
       </div>
 
-      {/* HERO BANNER DENGAN EMBED PLAYER STABIL */}
+      {/* HERO BANNER */}
       {currentSong ? (
         <div className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/15 bg-zinc-950 p-6 sm:p-10 shadow-2xl flex flex-col md:flex-row items-center gap-8">
           <div 
@@ -138,25 +195,15 @@ export function Music() {
             style={{ backgroundImage: `url(${currentSong.cover})` }}
           />
 
-          <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shrink-0 group">
+          <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shrink-0">
             <img src={currentSong.cover} alt={currentSong.title} className="w-full h-full object-cover" />
           </div>
 
           <div className="relative z-10 flex-1 w-full flex flex-col gap-4 text-center md:text-left">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full inline-block">
+            <div>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full inline-block mb-2">
                 Now Playing
               </span>
-              <button
-                onClick={() => setShowPlayerVideo(!showPlayerVideo)}
-                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 bg-white/5 px-3 py-1 rounded-full border border-white/10"
-              >
-                {showPlayerVideo ? <EyeOff size={14} /> : <Eye size={14} />}
-                <span>{showPlayerVideo ? 'Sembunyikan Video' : 'Tampilkan Video'}</span>
-              </button>
-            </div>
-
-            <div>
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight line-clamp-1">
                 {currentSong.title}
               </h1>
@@ -165,16 +212,48 @@ export function Music() {
               </p>
             </div>
 
-            {/* YOUTUBE EMBED PLAYER RESMI & LANGSUNG JALAN */}
-            <div className={`w-full rounded-2xl overflow-hidden border border-white/10 bg-black/60 transition-all ${showPlayerVideo ? 'h-48 sm:h-56' : 'h-20 sm:h-24'}`}>
-              <iframe
-                key={`${currentSong.title}-${currentSong.artist}`}
-                title={currentSong.title}
-                className="w-full h-full"
-                src={`https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(`${currentSong.title}${currentSong.artist}`)}&autoplay=1&controls=1`}
-                allow="autoplay; encrypted-media"
-                allowFullScreen
+            {/* Seek Bar + Timer Realtime */}
+            <div className="flex flex-col gap-1.5 w-full pt-2">
+              <input
+                type="range"
+                min={0}
+                max={duration || 100}
+                value={currentTime}
+                onChange={handleSeekChange}
+                className="w-full accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer"
               />
+              <div className="flex justify-between text-[11px] text-zinc-400 font-mono">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            {/* Controls: Play/Pause & Jump +/- 5 Detik */}
+            <div className="flex items-center justify-center md:justify-start gap-4 pt-1">
+              <button
+                onClick={() => seekBy(-5)}
+                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
+                title="Mundur 5 detik"
+              >
+                <RotateCcw size={18} />
+                <span className="text-[10px] font-bold ml-1">5s</span>
+              </button>
+
+              <button
+                onClick={togglePlay}
+                className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl"
+              >
+                {isPlaying ? <Pause size={24} className="fill-black" /> : <Play size={24} className="fill-black ml-1" />}
+              </button>
+
+              <button
+                onClick={() => seekBy(5)}
+                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
+                title="Maju 5 detik"
+              >
+                <span className="text-[10px] font-bold mr-1">5s</span>
+                <RotateCw size={18} />
+              </button>
             </div>
           </div>
         </div>
@@ -221,7 +300,7 @@ export function Music() {
                       onClick={() => playSong(song)}
                       className="p-2.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-all"
                     >
-                      <Play size={16} />
+                      {isSelected && isPlaying ? <Pause size={16} /> : <Play size={16} />}
                     </button>
 
                     <button
