@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
@@ -11,7 +11,6 @@ interface Song {
   title: string;
   artist: string;
   cover: string;
-  streamUrl?: string;
 }
 
 interface Playlist {
@@ -23,6 +22,13 @@ interface Playlist {
 }
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
 
 export function Music() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,7 +45,8 @@ export function Music() {
   const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>([]);
   const [inputPassword, setInputPassword] = useState<{ [key: string]: string }>({});
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<any>(null);
+  const timerRef = useRef<any>(null);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([
     {
@@ -57,73 +64,99 @@ export function Music() {
     }
   ]);
 
-  // Fungsi Muter Lagu via Audio Stream Direct
-  const playSong = async (song: Song) => {
-    setCurrentSong(song);
-    setIsLoadingAudio(true);
-    setIsPlaying(false);
+  // Load YouTube Iframe API Script
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
 
-    try {
-      // Ambil audio stream direct dari YouTube Video ID (Piped API / Invidious Fallback)
-      let audioUrl = song.streamUrl;
-      
-      if (!audioUrl) {
-        // Piped API Stream
-        const res = await fetch(`https://pipedapi.kavin.rocks/streams/${song.id}`);
-        const data = await res.json();
-        
-        // Cari stream audio murni (m4a/webm)
-        const audioStream = data?.audioStreams?.find((s: any) => s.mimeType?.includes('audio')) || data?.audioStreams?.[0];
-        if (audioStream?.url) {
-          audioUrl = audioStream.url;
+  // Update Time Loop
+  useEffect(() => {
+    if (isPlaying) {
+      timerRef.current = setInterval(() => {
+        if (playerRef.current && playerRef.current.getCurrentTime) {
+          setCurrentTime(playerRef.current.getCurrentTime());
+          setDuration(playerRef.current.getDuration() || 0);
         }
-      }
+      }, 500);
+    } else {
+      clearInterval(timerRef.current);
+    }
 
-      if (audioUrl && audioRef.current) {
-        audioRef.current.src = audioUrl;
-        await audioRef.current.play();
-        setIsPlaying(true);
-      } else {
-        alert("Gagal mengambil audio stream untuk lagu ini.");
-      }
-    } catch (err) {
-      console.error("Gagal pemutaran audio:", err);
-      alert("Gagal memutar lagu. Coba pilih lagu lain.");
-    } finally {
+    return () => clearInterval(timerRef.current);
+  }, [isPlaying]);
+
+  const initPlayer = (videoId: string) => {
+    setIsLoadingAudio(true);
+    if (playerRef.current && playerRef.current.loadVideoById) {
+      playerRef.current.loadVideoById(videoId);
+      setIsPlaying(true);
       setIsLoadingAudio(false);
+    } else if (window.YT && window.YT.Player) {
+      playerRef.current = new window.YT.Player('yt-hidden-player', {
+        height: '1',
+        width: '1',
+        videoId: videoId,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+        },
+        events: {
+          onReady: (event: any) => {
+            event.target.playVideo();
+            setIsPlaying(true);
+            setIsLoadingAudio(false);
+          },
+          onStateChange: (event: any) => {
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              setIsPlaying(true);
+              setIsLoadingAudio(false);
+            } else if (event.data === window.YT.PlayerState.PAUSED) {
+              setIsPlaying(false);
+            } else if (event.data === window.YT.PlayerState.ENDED) {
+              setIsPlaying(false);
+            }
+          }
+        }
+      });
     }
   };
 
+  const playSong = (song: Song) => {
+    setCurrentSong(song);
+    initPlayer(song.id);
+  };
+
   const togglePlay = () => {
-    if (!audioRef.current) return;
+    if (!playerRef.current) return;
     if (isPlaying) {
-      audioRef.current.pause();
+      playerRef.current.pauseVideo();
       setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      playerRef.current.playVideo();
       setIsPlaying(true);
     }
   };
 
   const seekBy = (seconds: number) => {
-    if (!audioRef.current) return;
-    const newTime = Math.min(
-      Math.max(audioRef.current.currentTime + seconds, 0),
-      duration
-    );
-    audioRef.current.currentTime = newTime;
+    if (!playerRef.current) return;
+    const newTime = Math.min(Math.max(currentTime + seconds, 0), duration);
+    playerRef.current.seekTo(newTime, true);
     setCurrentTime(newTime);
   };
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const targetTime = Number(e.target.value);
-    if (audioRef.current) {
-      audioRef.current.currentTime = targetTime;
+    if (playerRef.current) {
+      playerRef.current.seekTo(targetTime, true);
       setCurrentTime(targetTime);
     }
   };
 
-  // Search Song via YouTube Data API v3 Resmi
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -190,13 +223,10 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
-      {/* HTML5 Audio Player (Tanpa Video sama sekali) */}
-      <audio
-        ref={audioRef}
-        onTimeUpdate={() => audioRef.current && setCurrentTime(audioRef.current.currentTime)}
-        onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)}
-        onEnded={() => setIsPlaying(false)}
-      />
+      {/* Hidden YouTube Player (Biar gak kelihatan videonya) */}
+      <div className="hidden">
+        <div id="yt-hidden-player" />
+      </div>
 
       {/* Top Controls Bar */}
       <div className="flex items-center justify-between gap-4">
@@ -221,7 +251,7 @@ export function Music() {
         </form>
       </div>
 
-      {/* HERO BANNER MUSICOLET (MURNI UI PLAYER) */}
+      {/* HERO BANNER MUSICOLET */}
       {currentSong ? (
         <div className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/15 bg-zinc-950 p-6 sm:p-10 shadow-2xl flex flex-col md:flex-row items-center gap-8">
           <div 
@@ -263,7 +293,7 @@ export function Music() {
               </div>
             </div>
 
-            {/* Custom Control Buttons (Play/Pause, -5s, +5s) */}
+            {/* Custom Control Buttons */}
             <div className="flex items-center justify-center md:justify-start gap-4 pt-1">
               <button
                 onClick={() => seekBy(-5)}
