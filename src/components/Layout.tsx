@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 import { Navigation } from './Navigation';
 import { useLang } from '../App'; 
+import { useMusic } from '../context/MusicContext';
 
 // --- KOMPONEN JAM REALTIME (STYLING CARD UNIFIED) ---
 function LiveClock() {
@@ -49,35 +50,35 @@ function LiveClock() {
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { lang, toggleLang } = useLang(); 
+  const { currentSong } = useMusic();
+
+  // Cek apakah mini player sedang aktif di pojok bawah
+  const isMiniPlayerActive = Boolean(currentSong) && location.pathname !== '/music';
 
   // --- SCRIPT NOTIFIKASI ONESIGNAL ---
   useEffect(() => {
-    // 1. Inject tag script SDK OneSignal ke HTML secara dinamis
     const script = document.createElement('script');
     script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
     script.defer = true;
     document.head.appendChild(script);
 
-    // 2. Inisialisasi setelah SDK ter-load
     script.onload = () => {
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
-          appId: "MASUKKAN_APP_ID_ONESIGNAL_KAMU_DISINI", // <-- Ganti pakai App ID dari dashboard OneSignal
-          safari_web_id: "MASUKKAN_SAFARI_ID_JIKA_ADA",  // <-- Opsional, bisa dihapus kalau gak pakai
+          appId: "MASUKKAN_APP_ID_ONESIGNAL_KAMU_DISINI",
+          safari_web_id: "MASUKKAN_SAFARI_ID_JIKA_ADA",
           notifyButton: {
-            enable: true, // Memunculkan tombol lonceng otomatis di pojok kanan/kiri bawah
+            enable: true,
           },
         });
       });
     };
 
-    // Bersihkan script saat komponen unmount (good practice)
     return () => {
       document.head.removeChild(script);
     };
   }, []);
-  // -------------------------------------
 
   const getTheme = (path: string) => {
     if (path.startsWith('/group/fsc')) {
@@ -125,8 +126,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen w-full relative overflow-x-hidden selection:bg-blue-500/30">
       
-      {/* FLOATING BAR (PEMILIH BAHASA ATAS, JAM DI BAWAHNYA) */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+      {/* FLOATING BAR (PEMILIH BAHASA ATAS, JAM DI BAWAHNYA) - BERGESER NAIK OTOMATIS */}
+      <motion.div 
+        animate={{ y: isMiniPlayerActive ? -76 : 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 pointer-events-auto"
+      >
         <button 
           onClick={toggleLang}
           className="px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full text-xs font-black tracking-widest text-white hover:bg-white/10 shadow-xl transition-all cursor-pointer active:scale-95 select-none uppercase"
@@ -136,7 +141,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Jam Realtime ditaruh di bawah tombol bahasa */}
         <LiveClock />
-      </div>
+      </motion.div>
 
       <AnimatePresence mode="popLayout">
         <motion.div

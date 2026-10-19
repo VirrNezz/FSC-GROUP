@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
-  RotateCcw, RotateCw, ListMusic, Key, Plus, Volume2, VolumeX, Trash2
+  RotateCcw, RotateCw, ListMusic, Key, Plus, Volume2, VolumeX, Trash2,
+  Repeat, SkipBack, SkipForward, Sparkles
 } from 'lucide-react';
 import { Translate } from '../App';
 import { useMusic } from '../context/MusicContext';
@@ -11,12 +12,13 @@ const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
 export function Music() {
   const {
-    currentSong, isPlaying, currentTime, duration, volume, playlists,
-    playSong, togglePlay, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist
+    currentSong, isPlaying, currentTime, duration, volume, isRepeat, playlists,
+    playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist
   } = useMusic();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [autoCorrectText, setAutoCorrectText] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
@@ -72,7 +74,16 @@ export function Music() {
         }));
 
         setSearchResults(mappedSongs);
-        playSong(mappedSongs[0]);
+
+        // Banner Auto-Correct Imut
+        const topTitle = mappedSongs[0].title;
+        if (topTitle.toLowerCase() !== searchQuery.toLowerCase()) {
+          setAutoCorrectText(topTitle);
+        } else {
+          setAutoCorrectText(null);
+        }
+
+        playSong(mappedSongs[0], mappedSongs);
       } else {
         alert("Lagu tidak ditemukan!");
       }
@@ -128,7 +139,7 @@ export function Music() {
   };
 
   return (
-    <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
+    <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-6 relative z-10">
       
       {/* Top Controls Bar (Playlist + Volume + Search) */}
       <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
@@ -174,6 +185,23 @@ export function Music() {
         </form>
       </div>
 
+      {/* BANNER AUTO CORRECT IMUT */}
+      <AnimatePresence>
+        {autoCorrectText && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="w-full bg-purple-500/15 border border-purple-500/30 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2 text-xs text-purple-200 shadow-lg"
+          >
+            <Sparkles size={16} className="text-purple-400 shrink-0 animate-pulse" />
+            <p className="truncate">
+              Menampilkan hasil terbaik untuk: <span className="font-bold text-white italic">"{autoCorrectText}"</span>
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* HERO BANNER MUSICOLET */}
       {currentSong ? (
         <div className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/15 bg-zinc-950 p-6 sm:p-10 shadow-2xl flex flex-col md:flex-row items-center gap-8">
@@ -215,36 +243,68 @@ export function Music() {
               </div>
             </div>
 
-            {/* Custom Control Buttons */}
-            <div className="flex items-center justify-center md:justify-start gap-4 pt-1">
+            {/* Custom Control Buttons (Repeat, Prev, Skip -5s, Play/Pause, Skip +5s, Next) */}
+            <div className="flex items-center justify-center md:justify-start gap-3 pt-1 flex-wrap">
+              
+              {/* Repeat Button */}
+              <button
+                onClick={toggleRepeat}
+                className={`p-3 rounded-full border transition-all active:scale-90 ${
+                  isRepeat 
+                    ? 'bg-purple-500 text-white border-purple-400 shadow-lg shadow-purple-500/30' 
+                    : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'
+                }`}
+                title={isRepeat ? "Repeat 1 Song Active" : "Repeat Off"}
+              >
+                <Repeat size={18} />
+              </button>
+
+              {/* Prev Song */}
+              <button
+                onClick={playPrev}
+                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90"
+                title="Lagu Sebelumnya"
+              >
+                <SkipBack size={18} />
+              </button>
+
+              {/* Mundur 5s */}
               <button
                 onClick={() => seekBy(-5)}
-                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
+                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center"
                 title="Mundur 5 detik"
               >
-                <RotateCcw size={18} />
+                <RotateCcw size={16} />
                 <span className="text-[10px] font-bold ml-1">5s</span>
               </button>
 
+              {/* Play / Pause */}
               <button
                 onClick={togglePlay}
                 className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl"
               >
-                {isPlaying ? (
-                  <Pause size={24} className="fill-black" />
-                ) : (
-                  <Play size={24} className="fill-black ml-1" />
-                )}
+                {isPlaying ? <Pause size={24} className="fill-black" /> : <Play size={24} className="fill-black ml-1" />}
               </button>
 
+              {/* Maju 5s */}
               <button
                 onClick={() => seekBy(5)}
-                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
+                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center"
                 title="Maju 5 detik"
               >
                 <span className="text-[10px] font-bold mr-1">5s</span>
-                <RotateCw size={18} />
+                <RotateCw size={16} />
               </button>
+
+              {/* Next Song */}
+              <button
+                onClick={playNext}
+                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90"
+                title="Lagu Selanjutnya"
+              >
+                <SkipForward size={18} />
+              </button>
+
             </div>
 
           </div>
@@ -277,7 +337,7 @@ export function Music() {
                       : 'bg-zinc-900/40 border-white/5 hover:bg-zinc-800/50'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={() => playSong(song)}>
+                  <div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={() => playSong(song, searchResults)}>
                     <img src={song.cover} alt={song.title} className="w-12 h-12 rounded-xl object-cover shrink-0" />
                     <div className="truncate">
                       <h4 className={`text-sm font-bold truncate ${isSelected ? 'text-purple-300' : 'text-white'}`}>
@@ -289,7 +349,7 @@ export function Music() {
 
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => playSong(song)}
+                      onClick={() => playSong(song, searchResults)}
                       className="p-2.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-all"
                     >
                       {isSelected && isPlaying ? <Pause size={16} /> : <Play size={16} />}
