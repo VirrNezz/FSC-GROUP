@@ -2,9 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
-  RotateCcw, RotateCw, ListMusic, Key, Plus, Loader2
+  RotateCcw, RotateCw, ListMusic, Key, Plus, Loader2, Volume2, VolumeX, Trash2
 } from 'lucide-react';
 import { Translate } from '../App';
+import { db } from '../firebase'; // Sesuaikan path firebase config kamu
+import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
 
 interface Song {
   id: string; // YouTube Video ID
@@ -41,28 +43,23 @@ export function Music() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  // State Volume (0 - 100)
+  const [volume, setVolume] = useState(80);
+  const [isMuted, setIsMuted] = useState(false);
+
+  // State Drawer & Form Playlist Baru
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>([]);
   const [inputPassword, setInputPassword] = useState<{ [key: string]: string }>({});
 
+  const [newPlName, setNewPlName] = useState('');
+  const [newPlIsLocked, setNewPlIsLocked] = useState(false);
+  const [newPlPassword, setNewPlPassword] = useState('');
+  const [showAddPlForm, setShowAddPlForm] = useState(false);
+
   const playerRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
-
-  const [playlists, setPlaylists] = useState<Playlist[]>([
-    {
-      id: 'pl-1',
-      name: 'FSG Public Lounge',
-      isLocked: false,
-      songs: []
-    },
-    {
-      id: 'pl-2',
-      name: 'Juno Private Vault',
-      isLocked: true,
-      password: '123',
-      songs: []
-    }
-  ]);
 
   // Load YouTube Iframe API Script
   useEffect(() => {
@@ -72,6 +69,21 @@ export function Music() {
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
     }
+  }, []);
+
+  // Fetch Playlists Real-time dari Firebase Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'playlists'), (snapshot) => {
+      const docs: Playlist[] = snapshot.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as Omit<Playlist, 'id'>)
+      }));
+      setPlaylists(docs);
+    }, (err) => {
+      console.error("Firestore read error:", err);
+    });
+
+    return () => unsub();
   }, []);
 
   // Update Time Loop
@@ -107,6 +119,7 @@ export function Music() {
         },
         events: {
           onReady: (event: any) => {
+            event.target.setVolume(isMuted ? 0 : volume);
             event.target.playVideo();
             setIsPlaying(true);
             setIsLoadingAudio(false);
@@ -115,9 +128,7 @@ export function Music() {
             if (event.data === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
               setIsLoadingAudio(false);
-            } else if (event.data === window.YT.PlayerState.PAUSED) {
-              setIsPlaying(false);
-            } else if (event.data === window.YT.PlayerState.ENDED) {
+            } else if (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED) {
               setIsPlaying(false);
             }
           }
@@ -157,6 +168,28 @@ export function Music() {
     }
   };
 
+  // Kontrol Volume
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVol = Number(e.target.value);
+    setVolume(newVol);
+    setIsMuted(newVol === 0);
+    if (playerRef.current && playerRef.current.setVolume) {
+      playerRef.current.setVolume(newVol);
+    }
+  };
+
+  const toggleMute = () => {
+    if (!playerRef.current) return;
+    if (isMuted) {
+      playerRef.current.setVolume(volume || 80);
+      setIsMuted(false);
+    } else {
+      playerRef.current.setVolume(0);
+      setIsMuted(true);
+    }
+  };
+
+  // Search Song via YouTube Data API v3
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -199,6 +232,38 @@ export function Music() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  // CRUD Firebase Playlist
+  const handleCreatePlaylist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPlName.trim()) return;
+
+    try {
+      await addDoc(collection(db, 'playlists'), {
+        name: newPlName.trim(),
+        isLocked: newPlIsLocked,
+        password: newPlIsLocked ? newPlPassword : '',
+        songs: []
+      });
+      setNewPlName('');
+      setNewPlPassword('');
+      setNewPlIsLocked(false);
+      setShowAddPlForm(false);
+    } catch (err) {
+      console.error("Gagal buat playlist:", err);
+      alert("Gagal menambahkan playlist ke database.");
+    }
+  };
+
+  const handleDeletePlaylist = async (playlistId: string) => {
+    if (!confirm("Yakin ingin menghapus playlist ini?")) return;
+    try {
+      await deleteDoc(doc(db, 'playlists', playlistId));
+    } catch (err) {
+      console.error("Gagal hapus playlist:", err);
+      alert("Gagal menghapus playlist dari database.");
+    }
+  };
+
   const unlockPlaylist = (playlistId: string, pass: string) => {
     const target = playlists.find(p => p.id === playlistId);
     if (target && target.password === pass) {
@@ -209,37 +274,47 @@ export function Music() {
     }
   };
 
-  const addToPlaylist = (playlistId: string, song: Song) => {
-    setPlaylists(prev => prev.map(pl => {
-      if (pl.id === playlistId) {
-        const exists = pl.songs.some(s => s.id === song.id);
-        if (exists) return pl;
-        return { ...pl, songs: [...pl.songs, song] };
-      }
-      return pl;
-    }));
-  };
-
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
-      {/* Hidden YouTube Player (Biar gak kelihatan videonya) */}
+      {/* Hidden YouTube Player */}
       <div className="hidden">
         <div id="yt-hidden-player" />
       </div>
 
-      {/* Top Controls Bar */}
-      <div className="flex items-center justify-between gap-4">
-        <button
-          onClick={() => setIsPlaylistOpen(!isPlaylistOpen)}
-          className="flex items-center gap-2 px-4 py-3 rounded-full bg-zinc-900/80 border border-white/10 hover:bg-white/10 text-white backdrop-blur-md transition-all active:scale-95 shadow-lg shrink-0"
-          title="Buka Playlist"
-        >
-          <ListMusic size={20} className="text-purple-400" />
-          <span className="text-xs font-bold hidden sm:inline"><Translate text="Playlists" /></span>
-        </button>
+      {/* Top Controls Bar (Playlist + Volume + Search) */}
+      <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
+        
+        {/* Tombol Playlist + Slider Volume */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsPlaylistOpen(!isPlaylistOpen)}
+            className="flex items-center gap-2 px-4 py-3 rounded-full bg-zinc-900/80 border border-white/10 hover:bg-white/10 text-white backdrop-blur-md transition-all active:scale-95 shadow-lg shrink-0"
+            title="Buka Playlist"
+          >
+            <ListMusic size={20} className="text-purple-400" />
+            <span className="text-xs font-bold hidden sm:inline"><Translate text="Playlists" /></span>
+          </button>
 
-        <form onSubmit={handleSearch} className="relative flex-1 max-w-xl">
+          {/* Volume Control Slider */}
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-full bg-zinc-900/80 border border-white/10 backdrop-blur-md">
+            <button onClick={toggleMute} className="text-zinc-400 hover:text-white transition-colors">
+              {isMuted || volume === 0 ? <VolumeX size={18} className="text-red-400" /> : <Volume2 size={18} className="text-purple-400" />}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={isMuted ? 0 : volume}
+              onChange={handleVolumeChange}
+              className="w-16 sm:w-20 accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer"
+              title={`Volume: ${isMuted ? 0 : volume}%`}
+            />
+          </div>
+        </div>
+
+        {/* Search Input */}
+        <form onSubmit={handleSearch} className="relative flex-1 max-w-xl min-w-[200px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
           <input
             type="text"
@@ -377,14 +452,6 @@ export function Music() {
                     >
                       {isSelected && isPlaying ? <Pause size={16} /> : <Play size={16} />}
                     </button>
-
-                    <button
-                      onClick={() => addToPlaylist('pl-1', song)}
-                      className="p-2.5 rounded-full bg-white/5 hover:bg-purple-500/20 text-zinc-400 hover:text-purple-300 transition-all"
-                      title="Tambah ke Public Playlist"
-                    >
-                      <Plus size={16} />
-                    </button>
                   </div>
                 </div>
               );
@@ -393,7 +460,7 @@ export function Music() {
         </div>
       )}
 
-      {/* DRAWER PLAYLIST */}
+      {/* DRAWER PLAYLIST (REAL-TIME FIREBASE) */}
       <AnimatePresence>
         {isPlaylistOpen && (
           <motion.div
@@ -415,63 +482,132 @@ export function Music() {
               </button>
             </div>
 
-            <div className="flex flex-col gap-4">
-              {playlists.map((pl) => {
-                const isUnlocked = !pl.isLocked || unlockedPlaylists.includes(pl.id);
+            {/* Tombol Buat Playlist Baru */}
+            <div>
+              {!showAddPlForm ? (
+                <button
+                  onClick={() => setShowAddPlForm(true)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                >
+                  <Plus size={16} /> Buat Playlist Baru
+                </button>
+              ) : (
+                <form onSubmit={handleCreatePlaylist} className="bg-zinc-900/80 border border-white/10 p-4 rounded-xl flex flex-col gap-3">
+                  <h4 className="text-xs font-bold text-white">Tambah Playlist</h4>
+                  <input
+                    type="text"
+                    placeholder="Nama Playlist..."
+                    value={newPlName}
+                    onChange={(e) => setNewPlName(e.target.value)}
+                    className="w-full bg-black/50 border border-white/10 px-3 py-1.5 rounded-lg text-xs text-white focus:outline-none"
+                    required
+                  />
+                  <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newPlIsLocked}
+                      onChange={(e) => setNewPlIsLocked(e.target.checked)}
+                      className="accent-purple-500"
+                    />
+                    Kunci dengan Password
+                  </label>
 
-                return (
-                  <div key={pl.id} className="bg-zinc-900/60 border border-white/10 p-4 rounded-2xl flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {pl.isLocked && !isUnlocked ? <Lock size={16} className="text-red-400" /> : <Unlock size={16} className="text-emerald-400" />}
-                        <h4 className="font-bold text-sm text-white">{pl.name}</h4>
-                      </div>
-                      <span className="text-[10px] bg-white/10 px-2.5 py-0.5 rounded-full text-zinc-300">
-                        {pl.songs.length} Lagu
-                      </span>
-                    </div>
+                  {newPlIsLocked && (
+                    <input
+                      type="password"
+                      placeholder="Password..."
+                      value={newPlPassword}
+                      onChange={(e) => setNewPlPassword(e.target.value)}
+                      className="w-full bg-black/50 border border-white/10 px-3 py-1.5 rounded-lg text-xs text-white focus:outline-none"
+                      required
+                    />
+                  )}
 
-                    {!isUnlocked ? (
-                      <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
-                        <p className="text-[11px] text-zinc-400 flex items-center gap-1">
-                          <Key size={12} />
-                          Masukkan password:
-                        </p>
-                        <div className="flex gap-2">
-                          <input
-                            type="password"
-                            placeholder="Password..."
-                            value={inputPassword[pl.id] || ''}
-                            onChange={(e) => setInputPassword({ ...inputPassword, [pl.id]: e.target.value })}
-                            className="flex-1 bg-black/50 border border-white/10 px-3 py-1.5 rounded-xl text-xs text-white focus:outline-none"
-                          />
-                          <button
-                            onClick={() => unlockPlaylist(pl.id, inputPassword[pl.id])}
-                            className="px-3 py-1.5 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 rounded-xl text-xs font-bold"
-                          >
-                            Unlock
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1.5 pt-2 border-t border-white/10">
-                        {pl.songs.length === 0 ? (
-                          <p className="text-[11px] text-zinc-500 text-center py-2">Playlist ini masih kosong.</p>
-                        ) : (
-                          pl.songs.map((s) => (
-                            <div key={s.id} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-white/5">
-                              <span className="text-xs text-zinc-300 truncate max-w-[200px]">{s.title}</span>
-                              <button onClick={() => playSong(s)} className="p-1 hover:bg-white/10 rounded-full text-white">
-                                <Play size={12} />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
+                  <div className="flex gap-2 justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddPlForm(false)}
+                      className="px-3 py-1 bg-white/10 text-zinc-300 rounded-lg text-xs font-bold"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-3 py-1 bg-purple-500 text-white rounded-lg text-xs font-bold"
+                    >
+                      Simpan
+                    </button>
                   </div>
-                );
-              })}
+                </form>
+              )}
+            </div>
+
+            {/* List Playlist Real-time dari Database */}
+            <div className="flex flex-col gap-4">
+              {playlists.length === 0 ? (
+                <p className="text-xs text-zinc-500 text-center py-4">Belum ada playlist tersimpan di Firestore.</p>
+              ) : (
+                playlists.map((pl) => {
+                  const isUnlocked = !pl.isLocked || unlockedPlaylists.includes(pl.id);
+
+                  return (
+                    <div key={pl.id} className="bg-zinc-900/60 border border-white/10 p-4 rounded-2xl flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {pl.isLocked && !isUnlocked ? <Lock size={16} className="text-red-400" /> : <Unlock size={16} className="text-emerald-400" />}
+                          <h4 className="font-bold text-sm text-white">{pl.name}</h4>
+                        </div>
+                        <button
+                          onClick={() => handleDeletePlaylist(pl.id)}
+                          className="p-1 text-zinc-500 hover:text-red-400 transition-colors"
+                          title="Hapus Playlist"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      {!isUnlocked ? (
+                        <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                          <p className="text-[11px] text-zinc-400 flex items-center gap-1">
+                            <Key size={12} />
+                            Masukkan password:
+                          </p>
+                          <div className="flex gap-2">
+                            <input
+                              type="password"
+                              placeholder="Password..."
+                              value={inputPassword[pl.id] || ''}
+                              onChange={(e) => setInputPassword({ ...inputPassword, [pl.id]: e.target.value })}
+                              className="flex-1 bg-black/50 border border-white/10 px-3 py-1.5 rounded-xl text-xs text-white focus:outline-none"
+                            />
+                            <button
+                              onClick={() => unlockPlaylist(pl.id, inputPassword[pl.id])}
+                              className="px-3 py-1.5 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 rounded-xl text-xs font-bold"
+                            >
+                              Unlock
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1.5 pt-2 border-t border-white/10">
+                          {(!pl.songs || pl.songs.length === 0) ? (
+                            <p className="text-[11px] text-zinc-500 text-center py-2">Playlist ini masih kosong.</p>
+                          ) : (
+                            pl.songs.map((s) => (
+                              <div key={s.id} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-white/5">
+                                <span className="text-xs text-zinc-300 truncate max-w-[200px]">{s.title}</span>
+                                <button onClick={() => playSong(s)} className="p-1 hover:bg-white/10 rounded-full text-white">
+                                  <Play size={12} />
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </motion.div>
         )}
