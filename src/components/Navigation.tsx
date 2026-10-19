@@ -17,20 +17,20 @@ const navPages = [
     { name: 'Partners', path: '/partner', gradient: 'from-emerald-300 via-teal-200 to-white' },
     { name: 'Admins', path: '/admin', gradient: 'from-blue-400 via-blue-200 to-white' },
   ],
-  // Page 2: Features & Lounge (Bisa ditambahin rute baru di sini nanti!)
+  // Page 2: Features & Lounge
   [
     { name: 'Music Lounge', path: '/music', gradient: 'from-purple-400 via-pink-200 to-white' },
-    // Nanti tinggal tambah objek rute baru di sini :p
+    { name: 'Chat AI', path: '/ai', gradient: 'from-cyan-400 via-purple-300 to-white' },
   ]
 ];
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0); // Page index: 0 = Page 1, 1 = Page 2
+  const [currentPage, setCurrentPage] = useState(0);
   const location = useLocation();
   const { user, loginWithGoogle, logout } = useAuth();
 
-  const isDarkBg = ['/', '/group/fc', '/group/2ft', '/admin', '/partner', '/music'].includes(location.pathname);
+  const isDarkBg = ['/', '/group/fc', '/group/2ft', '/admin', '/partner', '/music', '/ai'].includes(location.pathname);
   const iconColor = isOpen ? 'text-white' : (isDarkBg ? 'text-white' : 'text-slate-900');
 
   const nextPage = () => {
@@ -46,8 +46,7 @@ export function Navigation() {
       <button
         onClick={() => {
           setIsOpen(true);
-          // Otomatis buka page 2 kalau user lagi ada di /music
-          if (location.pathname === '/music') setCurrentPage(1);
+          if (location.pathname === '/music' || location.pathname === '/ai') setCurrentPage(1);
         }}
         className={cn("fixed top-4 right-4 md:top-6 md:right-6 z-40 p-3 rounded-full backdrop-blur-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all", iconColor)}
         aria-label="Open Menu"
@@ -68,28 +67,17 @@ export function Navigation() {
               opacity: 1,
               maskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 250%, transparent 250%)',
               WebkitMaskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 250%, transparent 250%)',
-              transition: {
-                duration: 0.9,
-                ease: [0.16, 1, 0.3, 1]
-              }
+              transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] }
             }}
             exit={{
               opacity: 0,
               maskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
               WebkitMaskImage: 'radial-gradient(circle at calc(100% - 40px) 40px, black 0%, transparent 0%)',
-              transition: {
-                duration: 0.75,
-                ease: [0.25, 1, 0.5, 1] 
-              }
+              transition: { duration: 0.75, ease: [0.25, 1, 0.5, 1] }
             }}
-            style={{
-              willChange: 'mask-image, -webkit-mask-image, opacity',
-              transform: 'translateZ(0)',
-              WebkitTransform: 'translateZ(0)',
-            }}
+            style={{ willChange: 'mask-image, -webkit-mask-image, opacity', transform: 'translateZ(0)' }}
             className="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-xl flex flex-col justify-between items-center overflow-y-auto p-6 md:p-12 pointer-events-auto"
           >
-            {/* Tombol Close */}
             <div className="w-full flex justify-end">
               <button
                 onClick={() => setIsOpen(false)}
@@ -100,10 +88,7 @@ export function Navigation() {
               </button>
             </div>
 
-            {/* Container Navigasi Utama dengan Tombol Navigasi Kiri & Kanan */}
             <div className="w-full max-w-5xl my-auto flex items-center justify-between gap-2 sm:gap-6 relative px-2">
-              
-              {/* Tombol Panah Kiri */}
               <button
                 onClick={prevPage}
                 disabled={currentPage === 0}
@@ -111,12 +96,10 @@ export function Navigation() {
                   "p-3 rounded-full bg-white/5 border border-white/10 text-white transition-all shrink-0",
                   currentPage === 0 ? "opacity-20 cursor-not-allowed" : "hover:bg-white/20 hover:scale-110 active:scale-95"
                 )}
-                aria-label="Previous Page"
               >
                 <ChevronLeft size={28} />
               </button>
 
-              {/* Area Tampilan Menu per Page */}
               <div className="flex-1 flex flex-col items-center justify-center min-h-[360px] relative overflow-hidden">
                 <AnimatePresence mode="wait">
                   <motion.nav
@@ -159,7 +142,6 @@ export function Navigation() {
                   </motion.nav>
                 </AnimatePresence>
 
-                {/* Dots Indicator di Bawah Menu */}
                 <div className="flex gap-2 mt-8">
                   {navPages.map((_, idx) => (
                     <button
@@ -174,7 +156,6 @@ export function Navigation() {
                 </div>
               </div>
 
-              {/* Tombol Panah Kanan */}
               <button
                 onClick={nextPage}
                 disabled={currentPage === navPages.length - 1}
@@ -182,14 +163,11 @@ export function Navigation() {
                   "p-3 rounded-full bg-white/5 border border-white/10 text-white transition-all shrink-0",
                   currentPage === navPages.length - 1 ? "opacity-20 cursor-not-allowed" : "hover:bg-white/20 hover:scale-110 active:scale-95"
                 )}
-                aria-label="Next Page"
               >
                 <ChevronRight size={28} />
               </button>
-
             </div>
 
-            {/* Section Auth (Login/Logout) */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -199,10 +177,7 @@ export function Navigation() {
             >
               {user ? (
                 <button
-                  onClick={() => {
-                    logout();
-                    setIsOpen(false);
-                  }}
+                  onClick={() => { logout(); setIsOpen(false); }}
                   className="flex items-center gap-2 hover:text-white transition-colors text-sm sm:text-base"
                 >
                   <LogOut size={16} />
@@ -210,10 +185,7 @@ export function Navigation() {
                 </button>
               ) : (
                 <button
-                  onClick={() => {
-                    loginWithGoogle();
-                    setIsOpen(false);
-                  }}
+                  onClick={() => { loginWithGoogle(); setIsOpen(false); }}
                   className="flex items-center gap-2 hover:text-white transition-colors text-sm sm:text-base"
                 >
                   <LogIn size={16} />

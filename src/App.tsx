@@ -11,6 +11,7 @@ import { Group } from './pages/Group';
 import { Admin } from './pages/Admin';
 import { Partners } from './pages/Partner';
 import { Music } from './pages/Music';
+import { AI } from './pages/AI';
 import { NotFound } from './pages/NotFound';
 import { MusicProvider } from './context/MusicContext';
 import { MiniPlayer } from './components/MiniPlayer';
@@ -99,6 +100,7 @@ export default function App() {
               <Route path="/admin" element={<Admin />} />
               <Route path="/partner" element={<Partners />} />
               <Route path="/music" element={<Music />} />
+              <Route path="/ai" element={<AI />} />
               
               {/* Catch-all Route untuk Halaman 404 Not Found */}
               <Route path="*" element={<NotFound />} />
