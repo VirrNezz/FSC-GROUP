@@ -6,7 +6,7 @@ import { Translate } from '../App';
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
-export function ChatAi() {
+export function AI() {
   const [messages, setMessages] = useState<{ role: string; text: string }[]>([
     { role: 'model', text: 'Halo! Aku asisten AI siap menemanimu ngobrol di Furry Society Group. Ada yang ingin diobrolin? :3' }
   ]);
@@ -47,7 +47,7 @@ export function ChatAi() {
           <Sparkles size={20} />
         </div>
         <div>
-          <h2 className="text-base font-bold text-white"><Translate text="Chat AI Lounge" /></h2>
+          <h2 className="text-base font-bold text-white"><Translate text="Chat AI" /></h2>
           <p className="text-xs text-zinc-400">Ngobrol seru dan tanyakan apa saja dengan Gemini AI.</p>
         </div>
       </div>
