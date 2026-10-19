@@ -36,7 +36,7 @@ export function NotFound() {
             <Translate text="Page Not Found" />
           </h2>
           <p className="text-zinc-400 text-sm sm:text-base max-w-md mx-auto leading-relaxed">
-            <Translate text="Waduh, halaman yang kamu cari nggak ketemu nih! Mungkin jalannya salah atau halamannya udah dipindah." />
+            <Translate text="Oh dear, the page you’re looking for couldn’t be found! You might have taken a wrong turn, or perhaps the page has been moved." />
           </p>
         </div>
 

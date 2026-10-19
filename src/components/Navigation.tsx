@@ -12,6 +12,7 @@ const links = [
   { name: 'FC Group', path: '/group/fc', gradient: 'from-blue-400 via-blue-600 to-blue-900' },
   { name: '2FT Group', path: '/group/2ft', gradient: 'from-zinc-100 via-zinc-400 to-zinc-600' },
   { name: 'Partners', path: '/partner', gradient: 'from-emerald-300 via-teal-200 to-white' },
+  { name: 'Music Lounge', path: '/music', gradient: 'from-purple-400 via-pink-200 to-white' },
   { name: 'Admins', path: '/admin', gradient: 'from-blue-400 via-blue-200 to-white' },
 ];
 
@@ -20,7 +21,7 @@ export function Navigation() {
   const location = useLocation();
   const { user, loginWithGoogle, logout } = useAuth();
 
-  const isDarkBg = ['/', '/group/fc', '/group/2ft', '/admin', '/partners'].includes(location.pathname);
+  const isDarkBg = ['/', '/group/fc', '/group/2ft', '/admin', '/partner', '/music'].includes(location.pathname);
   const iconColor = isOpen ? 'text-white' : (isDarkBg ? 'text-white' : 'text-slate-900');
 
   return (
@@ -78,33 +79,40 @@ export function Navigation() {
               </button>
             </div>
 
-            {/* Menu Links Utama */}
-            <nav className="flex flex-col gap-4 sm:gap-6 md:gap-8 text-center px-4 my-auto py-8">
-              {links.map((link, i) => (
-                <motion.div
-                  key={link.path}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
-                  transition={{ delay: 0.15 + i * 0.05 }}
-                >
-                  <Link
-                    to={link.path}
-                    onClick={() => setIsOpen(false)}
-                    className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter relative group inline-block hover:scale-105 transition-transform duration-300"
+            {/* Menu Links Horizontal Scroll (Geser Kanan - Kiri) */}
+            <nav className="w-full max-w-6xl my-auto py-8">
+              <div className="flex items-center gap-6 sm:gap-10 md:gap-14 overflow-x-auto no-scrollbar py-8 px-4 scroll-smooth snap-x snap-mandatory">
+                {links.map((link, i) => (
+                  <motion.div
+                    key={link.path}
+                    initial={{ opacity: 0, x: 40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+                    transition={{ delay: 0.1 + i * 0.05 }}
+                    className="snap-center shrink-0"
                   >
-                    <span className={cn("bg-clip-text text-transparent bg-gradient-to-r transition-all duration-300", link.gradient, location.pathname !== link.path && "opacity-70 group-hover:opacity-100")}>
-                      <Translate text={link.name} />
-                    </span>
-                    {location.pathname === link.path && (
-                      <motion.span 
-                        layoutId="activeIndicator"
-                        className="absolute -left-5 sm:-left-8 top-1/2 -translate-y-1/2 w-2.5 h-2.5 sm:w-4 sm:h-4 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]" 
-                      />
-                    )}
-                  </Link>
-                </motion.div>
-              ))}
+                    <Link
+                      to={link.path}
+                      onClick={() => setIsOpen(false)}
+                      className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tighter relative group inline-block hover:scale-105 transition-transform duration-300 whitespace-nowrap"
+                    >
+                      <span className={cn(
+                        "bg-clip-text text-transparent bg-gradient-to-r transition-all duration-300", 
+                        link.gradient, 
+                        location.pathname !== link.path && "opacity-60 group-hover:opacity-100"
+                      )}>
+                        <Translate text={link.name} />
+                      </span>
+                      {location.pathname === link.path && (
+                        <motion.span 
+                          layoutId="activeIndicator"
+                          className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.8)]" 
+                        />
+                      )}
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
             </nav>
 
             {/* Section Auth (Login/Logout) */}
