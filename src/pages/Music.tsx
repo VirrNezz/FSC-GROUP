@@ -295,15 +295,15 @@ export function Music() {
               </button>
             </div>
 
-            {/* Seek Bar */}
-            <div className="flex flex-col gap-1 w-full pt-1">
+	    {/* Seek Bar */}
+            <div className="flex flex-col gap-1 w-full pt-1 relative overflow-hidden rounded-lg">
               <input
                 type="range"
                 min={0}
                 max={duration || 100}
                 value={currentTime}
                 onChange={(e) => handleSeekChange(Number(e.target.value))}
-                className="w-full accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer"
+                className="w-full accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer relative z-10"
               />
               <div className="flex justify-between text-[10px] sm:text-[11px] text-zinc-400 font-mono">
                 <span>{formatTime(currentTime)}</span>
