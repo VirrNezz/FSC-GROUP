@@ -295,15 +295,15 @@ export function Music() {
               </button>
             </div>
 
-	    {/* Seek Bar */}
-            <div className="flex flex-col gap-1 w-full pt-1 relative overflow-hidden rounded-lg">
+	    {/* Seek Bar yang dibatasi ukurannya agar tidak bablas ke kanan */}
+            <div className="flex flex-col gap-1 w-full max-w-lg pt-1 relative overflow-hidden">
               <input
                 type="range"
                 min={0}
                 max={duration || 100}
                 value={currentTime}
                 onChange={(e) => handleSeekChange(Number(e.target.value))}
-                className="w-full accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer relative z-10"
+                className="w-full accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer"
               />
               <div className="flex justify-between text-[10px] sm:text-[11px] text-zinc-400 font-mono">
                 <span>{formatTime(currentTime)}</span>
