@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
-  RotateCcw, RotateCw, ListMusic, Key, Plus
+  RotateCcw, RotateCw, ListMusic, Key, Plus, Eye, EyeOff
 } from 'lucide-react';
 import { Translate } from '../App';
 
@@ -21,13 +21,6 @@ interface Playlist {
   songs: Song[];
 }
 
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: () => void;
-  }
-}
-
 export function Music() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Song[]>([]);
@@ -35,15 +28,11 @@ export function Music() {
   
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [showPlayerVideo, setShowPlayerVideo] = useState(false);
 
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>([]);
   const [inputPassword, setInputPassword] = useState<{ [key: string]: string }>({});
-
-  const playerRef = useRef<any>(null);
-  const intervalRef = useRef<any>(null);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([
     {
@@ -61,85 +50,19 @@ export function Music() {
     }
   ]);
 
-  // Load YouTube IFrame API secara otomatis
-  useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-    }
-  }, []);
-
-  // Putar lagu berdasarkan judul & artis ke YouTube Player
   const playSong = (song: Song) => {
     setCurrentSong(song);
-    const searchQuery = `${song.title} ${song.artist}`;
-
-    if (playerRef.current && playerRef.current.loadPlaylist) {
-      playerRef.current.loadPlaylist({
-        listType: 'search',
-        list: searchQuery,
-        index: 0
-      });
-      setIsPlaying(true);
-    } else if (window.YT && window.YT.Player) {
-      playerRef.current = new window.YT.Player('youtube-hidden-player', {
-        height: '1',
-        width: '1',
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          listType: 'search',
-          list: searchQuery
-        },
-        events: {
-          onReady: (event: any) => {
-            event.target.playVideo();
-            setIsPlaying(true);
-          },
-          onStateChange: (event: any) => {
-            if (event.data === 1) {
-              setIsPlaying(true);
-              if (playerRef.current.getDuration) {
-                setDuration(playerRef.current.getDuration());
-              }
-            } else if (event.data === 2 || event.data === 0) {
-              setIsPlaying(false);
-            }
-          }
-        }
-      });
-    }
+    setIsPlaying(true);
   };
 
-  // Sync Timer Audio & Duration
-  useEffect(() => {
-    if (isPlaying) {
-      intervalRef.current = setInterval(() => {
-        if (playerRef.current && playerRef.current.getCurrentTime) {
-          setCurrentTime(playerRef.current.getCurrentTime() || 0);
-          if (playerRef.current.getDuration) {
-            setDuration(playerRef.current.getDuration() || 0);
-          }
-        }
-      }, 500);
-    } else {
-      clearInterval(intervalRef.current);
-    }
-    return () => clearInterval(intervalRef.current);
-  }, [isPlaying]);
-
-  // Fungsi pencarian fleksibel untuk SEMUA JUDUL LAGU
+  // Search Song via iTunes API
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     try {
-      // 1. Cari data lagu di database global
-      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=25`);
+      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=15`);
       const data = await res.json();
 
       if (data && data.results && data.results.length > 0) {
@@ -152,57 +75,12 @@ export function Music() {
 
         setSearchResults(mappedSongs);
         playSong(mappedSongs[0]);
-      } else {
-        // Fallback jika tidak ditemukan di iTunes: langsung buat objek lagu manual dari input pencarian
-        const customSong: Song = {
-          id: Date.now().toString(),
-          title: searchQuery,
-          artist: 'YouTube Music Search',
-          cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80'
-        };
-        setSearchResults([customSong]);
-        playSong(customSong);
       }
     } catch (err) {
       console.error("Gagal melakukan pencarian:", err);
     } finally {
       setIsSearching(false);
     }
-  };
-
-  const togglePlay = () => {
-    if (!playerRef.current) return;
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-      setIsPlaying(false);
-    } else {
-      playerRef.current.playVideo();
-      setIsPlaying(true);
-    }
-  };
-
-  const seekBy = (seconds: number) => {
-    if (!playerRef.current || !playerRef.current.getCurrentTime) return;
-    const newTime = Math.min(
-      Math.max(playerRef.current.getCurrentTime() + seconds, 0),
-      duration
-    );
-    playerRef.current.seekTo(newTime, true);
-    setCurrentTime(newTime);
-  };
-
-  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const targetTime = Number(e.target.value);
-    if (playerRef.current && playerRef.current.seekTo) {
-      playerRef.current.seekTo(targetTime, true);
-      setCurrentTime(targetTime);
-    }
-  };
-
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   const unlockPlaylist = (playlistId: string, pass: string) => {
@@ -229,11 +107,6 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
-      {/* HIDDEN YOUTUBE PLAYER */}
-      <div className="fixed -bottom-96 -right-96 w-1 h-1 opacity-0 pointer-events-none overflow-hidden">
-        <div id="youtube-hidden-player" />
-      </div>
-
       {/* Top Controls Bar */}
       <div className="flex items-center justify-between gap-4">
         <button
@@ -251,13 +124,13 @@ export function Music() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari lagu apa saja (misal: Terbuang Dalam Waktu)..."
+            placeholder="Cari lagu di Music Lounge..."
             className="w-full pl-11 pr-4 py-3 rounded-full bg-zinc-900/60 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-500 backdrop-blur-md transition-all"
           />
         </form>
       </div>
 
-      {/* HERO BANNER */}
+      {/* HERO BANNER DENGAN EMBED PLAYER STABIL */}
       {currentSong ? (
         <div className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/15 bg-zinc-950 p-6 sm:p-10 shadow-2xl flex flex-col md:flex-row items-center gap-8">
           <div 
@@ -265,15 +138,25 @@ export function Music() {
             style={{ backgroundImage: `url(${currentSong.cover})` }}
           />
 
-          <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shrink-0">
+          <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shrink-0 group">
             <img src={currentSong.cover} alt={currentSong.title} className="w-full h-full object-cover" />
           </div>
 
           <div className="relative z-10 flex-1 w-full flex flex-col gap-4 text-center md:text-left">
-            <div>
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full inline-block mb-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full inline-block">
                 Now Playing
               </span>
+              <button
+                onClick={() => setShowPlayerVideo(!showPlayerVideo)}
+                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 bg-white/5 px-3 py-1 rounded-full border border-white/10"
+              >
+                {showPlayerVideo ? <EyeOff size={14} /> : <Eye size={14} />}
+                <span>{showPlayerVideo ? 'Sembunyikan Video' : 'Tampilkan Video'}</span>
+              </button>
+            </div>
+
+            <div>
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight line-clamp-1">
                 {currentSong.title}
               </h1>
@@ -282,46 +165,16 @@ export function Music() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-1.5 w-full pt-2">
-              <input
-                type="range"
-                min={0}
-                max={duration || 100}
-                value={currentTime}
-                onChange={handleSeekChange}
-                className="w-full accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer"
+            {/* YOUTUBE EMBED PLAYER RESMI & LANGSUNG JALAN */}
+            <div className={`w-full rounded-2xl overflow-hidden border border-white/10 bg-black/60 transition-all ${showPlayerVideo ? 'h-48 sm:h-56' : 'h-20 sm:h-24'}`}>
+              <iframe
+                key={`${currentSong.title}-${currentSong.artist}`}
+                title={currentSong.title}
+                className="w-full h-full"
+                src={`https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(`${currentSong.title}${currentSong.artist}`)}&autoplay=1&controls=1`}
+                allow="autoplay; encrypted-media"
+                allowFullScreen
               />
-              <div className="flex justify-between text-[11px] text-zinc-400 font-mono">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center md:justify-start gap-4 pt-1">
-              <button
-                onClick={() => seekBy(-5)}
-                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
-                title="Mundur 5 detik"
-              >
-                <RotateCcw size={18} />
-                <span className="text-[10px] font-bold ml-1">5s</span>
-              </button>
-
-              <button
-                onClick={togglePlay}
-                className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl"
-              >
-                {isPlaying ? <Pause size={24} className="fill-black" /> : <Play size={24} className="fill-black ml-1" />}
-              </button>
-
-              <button
-                onClick={() => seekBy(5)}
-                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
-                title="Maju 5 detik"
-              >
-                <span className="text-[10px] font-bold mr-1">5s</span>
-                <RotateCw size={18} />
-              </button>
             </div>
           </div>
         </div>
@@ -368,7 +221,7 @@ export function Music() {
                       onClick={() => playSong(song)}
                       className="p-2.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-all"
                     >
-                      {isSelected && isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                      <Play size={16} />
                     </button>
 
                     <button
