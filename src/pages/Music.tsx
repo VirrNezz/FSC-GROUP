@@ -1,55 +1,27 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
-  RotateCcw, RotateCw, ListMusic, Key, Plus, Loader2, Volume2, VolumeX, Trash2
+  RotateCcw, RotateCw, ListMusic, Key, Plus, Volume2, VolumeX, Trash2
 } from 'lucide-react';
 import { Translate } from '../App';
-import { db } from '../firebase'; // Sesuaikan path firebase config kamu
-import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
-
-interface Song {
-  id: string; // YouTube Video ID
-  title: string;
-  artist: string;
-  cover: string;
-}
-
-interface Playlist {
-  id: string;
-  name: string;
-  isLocked: boolean;
-  password?: string;
-  songs: Song[];
-}
+import { useMusic } from '../context/MusicContext';
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: () => void;
-  }
-}
-
 export function Music() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Song[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  
-  const [currentSong, setCurrentSong] = useState<Song | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const {
+    currentSong, isPlaying, currentTime, duration, volume, playlists,
+    playSong, togglePlay, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist
+  } = useMusic();
 
-  // State Volume (0 - 100)
-  const [volume, setVolume] = useState(80);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
   // State Drawer & Form Playlist Baru
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>([]);
   const [inputPassword, setInputPassword] = useState<{ [key: string]: string }>({});
 
@@ -58,133 +30,19 @@ export function Music() {
   const [newPlPassword, setNewPlPassword] = useState('');
   const [showAddPlForm, setShowAddPlForm] = useState(false);
 
-  const playerRef = useRef<any>(null);
-  const timerRef = useRef<any>(null);
-
-  // Load YouTube Iframe API Script
-  useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-    }
-  }, []);
-
-  // Fetch Playlists Real-time dari Firebase Firestore
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'playlists'), (snapshot) => {
-      const docs: Playlist[] = snapshot.docs.map(d => ({
-        id: d.id,
-        ...(d.data() as Omit<Playlist, 'id'>)
-      }));
-      setPlaylists(docs);
-    }, (err) => {
-      console.error("Firestore read error:", err);
-    });
-
-    return () => unsub();
-  }, []);
-
-  // Update Time Loop
-  useEffect(() => {
-    if (isPlaying) {
-      timerRef.current = setInterval(() => {
-        if (playerRef.current && playerRef.current.getCurrentTime) {
-          setCurrentTime(playerRef.current.getCurrentTime());
-          setDuration(playerRef.current.getDuration() || 0);
-        }
-      }, 500);
-    } else {
-      clearInterval(timerRef.current);
-    }
-
-    return () => clearInterval(timerRef.current);
-  }, [isPlaying]);
-
-  const initPlayer = (videoId: string) => {
-    setIsLoadingAudio(true);
-    if (playerRef.current && playerRef.current.loadVideoById) {
-      playerRef.current.loadVideoById(videoId);
-      setIsPlaying(true);
-      setIsLoadingAudio(false);
-    } else if (window.YT && window.YT.Player) {
-      playerRef.current = new window.YT.Player('yt-hidden-player', {
-        height: '1',
-        width: '1',
-        videoId: videoId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-        },
-        events: {
-          onReady: (event: any) => {
-            event.target.setVolume(isMuted ? 0 : volume);
-            event.target.playVideo();
-            setIsPlaying(true);
-            setIsLoadingAudio(false);
-          },
-          onStateChange: (event: any) => {
-            if (event.data === window.YT.PlayerState.PLAYING) {
-              setIsPlaying(true);
-              setIsLoadingAudio(false);
-            } else if (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED) {
-              setIsPlaying(false);
-            }
-          }
-        }
-      });
-    }
-  };
-
-  const playSong = (song: Song) => {
-    setCurrentSong(song);
-    initPlayer(song.id);
-  };
-
-  const togglePlay = () => {
-    if (!playerRef.current) return;
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-      setIsPlaying(false);
-    } else {
-      playerRef.current.playVideo();
-      setIsPlaying(true);
-    }
-  };
-
-  const seekBy = (seconds: number) => {
-    if (!playerRef.current) return;
-    const newTime = Math.min(Math.max(currentTime + seconds, 0), duration);
-    playerRef.current.seekTo(newTime, true);
-    setCurrentTime(newTime);
-  };
-
-  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const targetTime = Number(e.target.value);
-    if (playerRef.current) {
-      playerRef.current.seekTo(targetTime, true);
-      setCurrentTime(targetTime);
-    }
-  };
-
   // Kontrol Volume
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVol = Number(e.target.value);
-    setVolume(newVol);
     setIsMuted(newVol === 0);
-    if (playerRef.current && playerRef.current.setVolume) {
-      playerRef.current.setVolume(newVol);
-    }
+    setVolumeLevel(newVol);
   };
 
   const toggleMute = () => {
-    if (!playerRef.current) return;
     if (isMuted) {
-      playerRef.current.setVolume(volume || 80);
+      setVolumeLevel(volume || 80);
       setIsMuted(false);
     } else {
-      playerRef.current.setVolume(0);
+      setVolumeLevel(0);
       setIsMuted(true);
     }
   };
@@ -206,7 +64,7 @@ export function Music() {
       const data = await res.json();
 
       if (data && data.items && data.items.length > 0) {
-        const mappedSongs: Song[] = data.items.map((item: any) => ({
+        const mappedSongs = data.items.map((item: any) => ({
           id: item.id.videoId,
           title: item.snippet.title,
           artist: item.snippet.channelTitle,
@@ -238,12 +96,7 @@ export function Music() {
     if (!newPlName.trim()) return;
 
     try {
-      await addDoc(collection(db, 'playlists'), {
-        name: newPlName.trim(),
-        isLocked: newPlIsLocked,
-        password: newPlIsLocked ? newPlPassword : '',
-        songs: []
-      });
+      await createPlaylist(newPlName.trim(), newPlIsLocked, newPlPassword);
       setNewPlName('');
       setNewPlPassword('');
       setNewPlIsLocked(false);
@@ -257,7 +110,7 @@ export function Music() {
   const handleDeletePlaylist = async (playlistId: string) => {
     if (!confirm("Yakin ingin menghapus playlist ini?")) return;
     try {
-      await deleteDoc(doc(db, 'playlists', playlistId));
+      await deletePlaylist(playlistId);
     } catch (err) {
       console.error("Gagal hapus playlist:", err);
       alert("Gagal menghapus playlist dari database.");
@@ -277,11 +130,6 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
-      {/* Hidden YouTube Player */}
-      <div className="hidden">
-        <div id="yt-hidden-player" />
-      </div>
-
       {/* Top Controls Bar (Playlist + Volume + Search) */}
       <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
         
@@ -358,8 +206,7 @@ export function Music() {
                 min={0}
                 max={duration || 100}
                 value={currentTime}
-                onChange={handleSeekChange}
-                disabled={isLoadingAudio}
+                onChange={(e) => handleSeekChange(Number(e.target.value))}
                 className="w-full accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer"
               />
               <div className="flex justify-between text-[11px] text-zinc-400 font-mono">
@@ -372,7 +219,6 @@ export function Music() {
             <div className="flex items-center justify-center md:justify-start gap-4 pt-1">
               <button
                 onClick={() => seekBy(-5)}
-                disabled={isLoadingAudio}
                 className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
                 title="Mundur 5 detik"
               >
@@ -382,12 +228,9 @@ export function Music() {
 
               <button
                 onClick={togglePlay}
-                disabled={isLoadingAudio}
                 className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl"
               >
-                {isLoadingAudio ? (
-                  <Loader2 size={24} className="animate-spin text-black" />
-                ) : isPlaying ? (
+                {isPlaying ? (
                   <Pause size={24} className="fill-black" />
                 ) : (
                   <Play size={24} className="fill-black ml-1" />
@@ -396,7 +239,6 @@ export function Music() {
 
               <button
                 onClick={() => seekBy(5)}
-                disabled={isLoadingAudio}
                 className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
                 title="Maju 5 detik"
               >
@@ -460,7 +302,7 @@ export function Music() {
         </div>
       )}
 
-      {/* DRAWER PLAYLIST (REAL-TIME FIREBASE) */}
+      {/* DRAWER PLAYLIST */}
       <AnimatePresence>
         {isPlaylistOpen && (
           <motion.div
