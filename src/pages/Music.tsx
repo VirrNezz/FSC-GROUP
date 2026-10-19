@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
-  RotateCcw, RotateCw, ListMusic, Key, Plus, Volume2, VolumeX 
+  RotateCcw, RotateCw, ListMusic, Key, Plus
 } from 'lucide-react';
 import { Translate } from '../App';
 
 interface Song {
-  id: string; // YouTube Video ID
+  id: string;
   title: string;
   artist: string;
   cover: string;
@@ -74,44 +74,53 @@ export function Music() {
     }
   }, []);
 
-  // Inisialisasi YouTube Player Tersembunyi saat lagu dipilih
+  // Inisialisasi Player YouTube Tersembunyi berdasarkan Judul + Artis
   useEffect(() => {
     if (!currentSong) return;
 
     const createPlayer = () => {
-      if (playerRef.current) {
-        playerRef.current.loadVideoById(currentSong.id);
+      const querySearch = `${currentSong.title} ${currentSong.artist}`;
+
+      if (playerRef.current && playerRef.current.loadPlaylist) {
+        playerRef.current.loadPlaylist({
+          listType: 'search',
+          list: querySearch,
+          index: 0
+        });
         setIsPlaying(true);
         return;
       }
 
-      playerRef.current = new window.YT.Player('youtube-hidden-player', {
-        height: '0',
-        width: '0',
-        videoId: currentSong.id,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          modestbranding: 1,
-        },
-        events: {
-          onReady: (event: any) => {
-            event.target.playVideo();
-            setIsPlaying(true);
-            setDuration(event.target.getDuration());
+      if (window.YT && window.YT.Player) {
+        playerRef.current = new window.YT.Player('youtube-hidden-player', {
+          height: '0',
+          width: '0',
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            modestbranding: 1,
+            listType: 'search',
+            list: querySearch
           },
-          onStateChange: (event: any) => {
-            // YT.PlayerState.PLAYING = 1, PAUSED = 2, ENDED = 0
-            if (event.data === 1) {
+          events: {
+            onReady: (event: any) => {
+              event.target.playVideo();
               setIsPlaying(true);
-              setDuration(playerRef.current.getDuration());
-            } else if (event.data === 2 || event.data === 0) {
-              setIsPlaying(false);
+            },
+            onStateChange: (event: any) => {
+              if (event.data === 1) {
+                setIsPlaying(true);
+                if (playerRef.current.getDuration) {
+                  setDuration(playerRef.current.getDuration());
+                }
+              } else if (event.data === 2 || event.data === 0) {
+                setIsPlaying(false);
+              }
             }
           }
-        }
-      });
+        });
+      }
     };
 
     if (window.YT && window.YT.Player) {
@@ -121,13 +130,15 @@ export function Music() {
     }
   }, [currentSong]);
 
-  // Update timer (Current Time) setiap 500ms
+  // Update timer (Current Time & Duration)
   useEffect(() => {
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
         if (playerRef.current && playerRef.current.getCurrentTime) {
-          setCurrentTime(playerRef.current.getCurrentTime());
-          setDuration(playerRef.current.getDuration() || 0);
+          setCurrentTime(playerRef.current.getCurrentTime() || 0);
+          if (playerRef.current.getDuration) {
+            setDuration(playerRef.current.getDuration() || 0);
+          }
         }
       }, 500);
     } else {
@@ -136,26 +147,23 @@ export function Music() {
     return () => clearInterval(intervalRef.current);
   }, [isPlaying]);
 
-  // Search Song via Public Invidious/Piped API (YouTube Data tanpa Key)
+  // Search Song via iTunes API (Anti CORS & Cepat)
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     try {
-      const res = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`);
+      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=15`);
       const data = await res.json();
 
-      if (data && data.items) {
-        const mappedSongs: Song[] = data.items
-          .filter((item: any) => item.type === 'stream')
-          .slice(0, 15)
-          .map((item: any) => ({
-            id: item.url.replace('/watch?v=', ''),
-            title: item.title,
-            artist: item.uploaderName || 'Unknown Artist',
-            cover: item.thumbnail || `https://i.ytimg.com/vi/${item.url.replace('/watch?v=', '')}/hqdefault.jpg`
-          }));
+      if (data && data.results) {
+        const mappedSongs: Song[] = data.results.map((item: any) => ({
+          id: String(item.trackId),
+          title: item.trackName,
+          artist: item.artistName,
+          cover: item.artworkUrl100.replace('100x100bb', '600x600bb')
+        }));
 
         setSearchResults(mappedSongs);
         if (mappedSongs.length > 0 && !currentSong) {
@@ -163,13 +171,7 @@ export function Music() {
         }
       }
     } catch (err) {
-      // Fallback pencarian Piped jika instance utama busy
-      try {
-        const fallbackRes = await fetch(`https://api.invidious.io/instances/`);
-        // Lakukan pencarian standar
-      } catch (e) {
-        console.error("Search failed", e);
-      }
+      console.error("Gagal melakukan pencarian:", err);
     } finally {
       setIsSearching(false);
     }
@@ -177,10 +179,7 @@ export function Music() {
 
   const playSong = (song: Song) => {
     setCurrentSong(song);
-    if (playerRef.current && playerRef.current.loadVideoById) {
-      playerRef.current.loadVideoById(song.id);
-      setIsPlaying(true);
-    }
+    setIsPlaying(true);
   };
 
   const togglePlay = () => {
@@ -244,7 +243,7 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
-      {/* HIDDEN YOUTUBE IFRAME (TIDAK TAMPIL DI LAYAR SAMA SELEKALI) */}
+      {/* HIDDEN YOUTUBE IFRAME (PEMUTAR BACKGROUND FULL AUDIO) */}
       <div className="hidden pointer-events-none opacity-0 w-0 h-0 overflow-hidden">
         <div id="youtube-hidden-player" />
       </div>
@@ -268,7 +267,7 @@ export function Music() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari lagu di YouTube Music..."
+            placeholder="Cari lagu di Music Lounge..."
             className="w-full pl-11 pr-4 py-3 rounded-full bg-zinc-900/60 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-500 backdrop-blur-md transition-all"
           />
         </form>
@@ -292,7 +291,7 @@ export function Music() {
           <div className="relative z-10 flex-1 w-full flex flex-col gap-4 text-center md:text-left">
             <div>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full inline-block mb-2">
-                YouTube Audio Stream
+                Now Playing
               </span>
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight line-clamp-1">
                 {currentSong.title}
