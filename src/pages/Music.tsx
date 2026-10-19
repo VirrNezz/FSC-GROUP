@@ -1,17 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
-  RotateCcw, RotateCw, ListMusic, Key, Plus, Loader2
+  Search, Play, Lock, Unlock, Music as MusicIcon, 
+  ListMusic, Key, Plus
 } from 'lucide-react';
 import { Translate } from '../App';
 
 interface Song {
-  id: string;
+  id: string; // YouTube Video ID
   title: string;
   artist: string;
   cover: string;
-  streamUrl?: string;
 }
 
 interface Playlist {
@@ -22,22 +21,19 @@ interface Playlist {
   songs: Song[];
 }
 
+// Mengambil YouTube Data API Key dari file .env
+const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+
 export function Music() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
 
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>([]);
   const [inputPassword, setInputPassword] = useState<{ [key: string]: string }>({});
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([
     {
@@ -55,83 +51,38 @@ export function Music() {
     }
   ]);
 
-  // Handle Muter Lagu
-  const playSong = async (song: Song) => {
+  const playSong = (song: Song) => {
     setCurrentSong(song);
-    setIsLoadingAudio(true);
-    setIsPlaying(false);
-
-    try {
-      // Ambil stream audio direct jika belum ada
-      let url = song.streamUrl;
-      if (!url) {
-        // Ambil via iTunes preview fallback direct
-        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(`${song.title}${song.artist}`)}&entity=song&limit=1`);
-        const data = await res.json();
-        if (data?.results?.[0]?.previewUrl) {
-          url = data.results[0].previewUrl;
-        }
-      }
-
-      if (url && audioRef.current) {
-        audioRef.current.src = url;
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
-    } catch (err) {
-      console.error("Gagal muter lagu:", err);
-    } finally {
-      setIsLoadingAudio(false);
-    }
   };
 
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  };
-
-  // Skip 5 Detik
-  const seekBy = (seconds: number) => {
-    if (!audioRef.current) return;
-    const newTime = Math.min(
-      Math.max(audioRef.current.currentTime + seconds, 0),
-      duration
-    );
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
-
-  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const targetTime = Number(e.target.value);
-    if (audioRef.current) {
-      audioRef.current.currentTime = targetTime;
-      setCurrentTime(targetTime);
-    }
-  };
-
-  // Search Song via iTunes API (Langsung dapet gambar HD + audio stream)
+  // Search Song via YouTube Data API v3 Resmi
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
+    if (!YOUTUBE_API_KEY) {
+      alert("API Key belum diset di file .env (VITE_YOUTUBE_API_KEY)!");
+      return;
+    }
+
     setIsSearching(true);
     try {
-      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=15`);
+      const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(searchQuery + ' audio')}&type=video&key=${YOUTUBE_API_KEY}`;
+      const res = await fetch(endpoint);
       const data = await res.json();
 
-      if (data && data.results && data.results.length > 0) {
-        const mappedSongs: Song[] = data.results.map((item: any) => ({
-          id: String(item.trackId),
-          title: item.trackName,
-          artist: item.artistName,
-          cover: item.artworkUrl100.replace('100x100bb', '600x600bb'),
-          streamUrl: item.previewUrl
+      if (data.error) {
+        console.error("YouTube API Error:", data.error);
+        alert(`YouTube API Error: ${data.error.message}`);
+        return;
+      }
+
+      if (data && data.items && data.items.length > 0) {
+        const mappedSongs: Song[] = data.items.map((item: any) => ({
+          id: item.id.videoId,
+          title: item.snippet.title,
+          artist: item.snippet.channelTitle,
+          cover: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url
         }));
 
         setSearchResults(mappedSongs);
@@ -144,12 +95,6 @@ export function Music() {
     } finally {
       setIsSearching(false);
     }
-  };
-
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   const unlockPlaylist = (playlistId: string, pass: string) => {
@@ -176,14 +121,6 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
-      {/* HTML5 AUDIO PLAYER (SURE-FIRE 100% BEBAS IFRAME BLOCK) */}
-      <audio
-        ref={audioRef}
-        onTimeUpdate={() => audioRef.current && setCurrentTime(audioRef.current.currentTime)}
-        onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)}
-        onEnded={() => setIsPlaying(false)}
-      />
-
       {/* Top Controls Bar */}
       <div className="flex items-center justify-between gap-4">
         <button
@@ -201,7 +138,7 @@ export function Music() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari lagu di Music Lounge..."
+            placeholder="Cari lagu di YouTube Music..."
             className="w-full pl-11 pr-4 py-3 rounded-full bg-zinc-900/60 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-500 backdrop-blur-md transition-all"
           />
         </form>
@@ -222,7 +159,7 @@ export function Music() {
           <div className="relative z-10 flex-1 w-full flex flex-col gap-4 text-center md:text-left">
             <div>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full inline-block mb-2">
-                Now Playing
+                Now Playing (Full Audio)
               </span>
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight line-clamp-1">
                 {currentSong.title}
@@ -232,58 +169,16 @@ export function Music() {
               </p>
             </div>
 
-            {/* Seek Bar + Timer */}
-            <div className="flex flex-col gap-1.5 w-full pt-2">
-              <input
-                type="range"
-                min={0}
-                max={duration || 100}
-                value={currentTime}
-                onChange={handleSeekChange}
-                disabled={isLoadingAudio}
-                className="w-full accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer"
+            {/* EMBED YOUTUBE PLAYER RESMI (100% DURASI UTUH) */}
+            <div className="w-full h-36 rounded-2xl overflow-hidden border border-white/10 bg-black/60 mt-2">
+              <iframe
+                key={currentSong.id}
+                title={currentSong.title}
+                className="w-full h-full"
+                src={`https://www.youtube-nocookie.com/embed/${currentSong.id}?autoplay=1&controls=1`}
+                allow="autoplay; encrypted-media"
+                allowFullScreen
               />
-              <div className="flex justify-between text-[11px] text-zinc-400 font-mono">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-
-            {/* Controls: Play/Pause & -5s/+5s */}
-            <div className="flex items-center justify-center md:justify-start gap-4 pt-1">
-              <button
-                onClick={() => seekBy(-5)}
-                disabled={isLoadingAudio}
-                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
-                title="Mundur 5 detik"
-              >
-                <RotateCcw size={18} />
-                <span className="text-[10px] font-bold ml-1">5s</span>
-              </button>
-
-              <button
-                onClick={togglePlay}
-                disabled={isLoadingAudio}
-                className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl"
-              >
-                {isLoadingAudio ? (
-                  <Loader2 size={24} className="animate-spin text-black" />
-                ) : isPlaying ? (
-                  <Pause size={24} className="fill-black" />
-                ) : (
-                  <Play size={24} className="fill-black ml-1" />
-                )}
-              </button>
-
-              <button
-                onClick={() => seekBy(5)}
-                disabled={isLoadingAudio}
-                className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all active:scale-90 flex items-center justify-center"
-                title="Maju 5 detik"
-              >
-                <span className="text-[10px] font-bold mr-1">5s</span>
-                <RotateCw size={18} />
-              </button>
             </div>
           </div>
         </div>
@@ -330,7 +225,7 @@ export function Music() {
                       onClick={() => playSong(song)}
                       className="p-2.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-all"
                     >
-                      {isSelected && isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                      <Play size={16} />
                     </button>
 
                     <button
