@@ -8,7 +8,6 @@ import { Translate } from '../App';
 
 interface Song {
   id: string;
-  youtubeId?: string;
   title: string;
   artist: string;
   cover: string;
@@ -62,7 +61,7 @@ export function Music() {
     }
   ]);
 
-  // Load YouTube IFrame API
+  // Load YouTube IFrame API secara otomatis
   useEffect(() => {
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -72,55 +71,28 @@ export function Music() {
     }
   }, []);
 
-  // Ambil YouTube Video ID via Proxy publik bebas CORS
-  const fetchYouTubeId = async (title: string, artist: string): Promise<string | null> => {
-    try {
-      const query = encodeURIComponent(`${title} ${artist} audio`);
-      const res = await fetch(`https://yt.drgnz.workers.dev/?q=${query}`);
-      const data = await res.json();
-      if (data && data[0] && data[0].id) {
-        return data[0].id;
-      }
-    } catch (e) {
-      console.warn("Proxy 1 fail, trying Fallback...");
-    }
-
-    try {
-      const query = encodeURIComponent(`${title} ${artist}`);
-      const res = await fetch(`https://invidious.no-cors.workers.dev/api/v1/search?q=${query}&type=video`);
-      const data = await res.json();
-      if (data && data[0] && data[0].videoId) {
-        return data[0].videoId;
-      }
-    } catch (e) {
-      console.error("Gagal mengambil YouTube ID:", e);
-    }
-    return null;
-  };
-
-  // Putar lagu berdasarkan YouTube ID
-  const playSong = async (song: Song) => {
+  // Putar lagu berdasarkan judul & artis ke YouTube Player
+  const playSong = (song: Song) => {
     setCurrentSong(song);
-    
-    let ytId = song.youtubeId;
-    if (!ytId) {
-      ytId = await fetchYouTubeId(song.title, song.artist) || 'dQw4w9WgXcQ';
-    }
+    const searchQuery = `${song.title} ${song.artist}`;
 
-    if (playerRef.current && playerRef.current.loadVideoById) {
-      playerRef.current.loadVideoById(ytId);
-      playerRef.current.playVideo();
+    if (playerRef.current && playerRef.current.loadPlaylist) {
+      playerRef.current.loadPlaylist({
+        listType: 'search',
+        list: searchQuery,
+        index: 0
+      });
       setIsPlaying(true);
     } else if (window.YT && window.YT.Player) {
       playerRef.current = new window.YT.Player('youtube-hidden-player', {
         height: '1',
         width: '1',
-        videoId: ytId,
         playerVars: {
           autoplay: 1,
           controls: 0,
           disablekb: 1,
-          origin: window.location.origin
+          listType: 'search',
+          list: searchQuery
         },
         events: {
           onReady: (event: any) => {
@@ -142,7 +114,7 @@ export function Music() {
     }
   };
 
-  // Sync Timer Audio
+  // Sync Timer Audio & Duration
   useEffect(() => {
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
@@ -159,17 +131,18 @@ export function Music() {
     return () => clearInterval(intervalRef.current);
   }, [isPlaying]);
 
-  // Search Song via iTunes API
+  // Fungsi pencarian fleksibel untuk SEMUA JUDUL LAGU
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     try {
-      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=15`);
+      // 1. Cari data lagu di database global
+      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=25`);
       const data = await res.json();
 
-      if (data && data.results) {
+      if (data && data.results && data.results.length > 0) {
         const mappedSongs: Song[] = data.results.map((item: any) => ({
           id: String(item.trackId),
           title: item.trackName,
@@ -178,9 +151,17 @@ export function Music() {
         }));
 
         setSearchResults(mappedSongs);
-        if (mappedSongs.length > 0 && !currentSong) {
-          playSong(mappedSongs[0]);
-        }
+        playSong(mappedSongs[0]);
+      } else {
+        // Fallback jika tidak ditemukan di iTunes: langsung buat objek lagu manual dari input pencarian
+        const customSong: Song = {
+          id: Date.now().toString(),
+          title: searchQuery,
+          artist: 'YouTube Music Search',
+          cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80'
+        };
+        setSearchResults([customSong]);
+        playSong(customSong);
       }
     } catch (err) {
       console.error("Gagal melakukan pencarian:", err);
@@ -248,7 +229,7 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
-      {/* HIDDEN YOUTUBE IFRAME PLAYER (Ditaruh diluar area pandang agar Autoplay diizinkan) */}
+      {/* HIDDEN YOUTUBE PLAYER */}
       <div className="fixed -bottom-96 -right-96 w-1 h-1 opacity-0 pointer-events-none overflow-hidden">
         <div id="youtube-hidden-player" />
       </div>
@@ -270,7 +251,7 @@ export function Music() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari lagu di Music Lounge..."
+            placeholder="Cari lagu apa saja (misal: Terbuang Dalam Waktu)..."
             className="w-full pl-11 pr-4 py-3 rounded-full bg-zinc-900/60 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-500 backdrop-blur-md transition-all"
           />
         </form>
