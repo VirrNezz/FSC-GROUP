@@ -19,13 +19,18 @@ export interface Playlist {
 
 interface MusicContextType {
   currentSong: Song | null;
+  queue: Song[];
   isPlaying: boolean;
   currentTime: number;
   duration: number;
   volume: number;
+  isRepeat: boolean;
   playlists: Playlist[];
-  playSong: (song: Song) => void;
+  playSong: (song: Song, songList?: Song[]) => void;
   togglePlay: () => void;
+  toggleRepeat: () => void;
+  playNext: () => void;
+  playPrev: () => void;
   seekBy: (seconds: number) => void;
   handleSeekChange: (targetTime: number) => void;
   setVolumeLevel: (val: number) => void;
@@ -37,14 +42,25 @@ const MusicContext = createContext<MusicContextType | null>(null);
 
 export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
+  const [queue, setQueue] = useState<Song[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(80);
+  const [isRepeat, setIsRepeat] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   const playerRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
+
+  // useRef biar event handler YouTube API selalu dapet value state paling update
+  const isRepeatRef = useRef(isRepeat);
+  const queueRef = useRef(queue);
+  const currentSongRef = useRef(currentSong);
+
+  useEffect(() => { isRepeatRef.current = isRepeat; }, [isRepeat]);
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+  useEffect(() => { currentSongRef.current = currentSong; }, [currentSong]);
 
   // Load YouTube Iframe API
   useEffect(() => {
@@ -97,17 +113,67 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setIsPlaying(true);
           },
           onStateChange: (e: any) => {
-            if (e.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
-            else if (e.data === window.YT.PlayerState.PAUSED || e.data === window.YT.PlayerState.ENDED) setIsPlaying(false);
+            if (e.data === window.YT.PlayerState.PLAYING) {
+              setIsPlaying(true);
+            } else if (e.data === window.YT.PlayerState.PAUSED) {
+              setIsPlaying(false);
+            } else if (e.data === window.YT.PlayerState.ENDED) {
+              // LOGIKA REPEAT & NEXT AUTOMATIS
+              if (isRepeatRef.current) {
+                playerRef.current.seekTo(0, true);
+                playerRef.current.playVideo();
+                setIsPlaying(true);
+              } else {
+                handleAutoNext();
+              }
+            }
           }
         }
       });
     }
   };
 
-  const playSong = (song: Song) => {
+  const handleAutoNext = () => {
+    const currentList = queueRef.current;
+    const current = currentSongRef.current;
+    if (!current || currentList.length === 0) return;
+
+    const currentIndex = currentList.findIndex(s => s.id === current.id);
+    if (currentIndex !== -1 && currentIndex < currentList.length - 1) {
+      const nextSong = currentList[currentIndex + 1];
+      setCurrentSong(nextSong);
+      initPlayer(nextSong.id);
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
+  const playSong = (song: Song, songList?: Song[]) => {
     setCurrentSong(song);
+    if (songList && songList.length > 0) {
+      setQueue(songList);
+    }
     initPlayer(song.id);
+  };
+
+  const playNext = () => {
+    if (!currentSong || queue.length === 0) return;
+    const currentIndex = queue.findIndex(s => s.id === currentSong.id);
+    if (currentIndex !== -1 && currentIndex < queue.length - 1) {
+      const nextSong = queue[currentIndex + 1];
+      playSong(nextSong);
+    }
+  };
+
+  const playPrev = () => {
+    if (!currentSong || queue.length === 0) return;
+    const currentIndex = queue.findIndex(s => s.id === currentSong.id);
+    if (currentIndex > 0) {
+      const prevSong = queue[currentIndex - 1];
+      playSong(prevSong);
+    } else {
+      playerRef.current?.seekTo(0, true);
+    }
   };
 
   const togglePlay = () => {
@@ -119,6 +185,10 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       playerRef.current.playVideo();
       setIsPlaying(true);
     }
+  };
+
+  const toggleRepeat = () => {
+    setIsRepeat(prev => !prev);
   };
 
   const seekBy = (seconds: number) => {
@@ -152,11 +222,10 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <MusicContext.Provider value={{
-      currentSong, isPlaying, currentTime, duration, volume, playlists,
-      playSong, togglePlay, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist
+      currentSong, queue, isPlaying, currentTime, duration, volume, isRepeat, playlists,
+      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist
     }}>
       {children}
-      {/* Target Iframe Youtube Global */}
       <div className="hidden"><div id="global-yt-player" /></div>
     </MusicContext.Provider>
   );
