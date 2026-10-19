@@ -23,8 +23,8 @@ export function AI() {
     setLoading(true);
 
     try {
-	const response = await ai.models.generateContent({
-        model: 'gemini-flash-lastest',
+      const response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
         contents: userMessage,
       });
 
