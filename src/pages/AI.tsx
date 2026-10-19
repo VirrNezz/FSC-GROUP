@@ -24,7 +24,7 @@ export function AI() {
 
     try {
 	const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash-lastest',
+        model: 'gemini-flash-lastest',
         contents: userMessage,
       });
 
