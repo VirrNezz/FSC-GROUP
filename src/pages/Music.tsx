@@ -10,6 +10,7 @@ import { useMusic } from '../context/MusicContext';
 import { useAuth } from '../hooks/useAuth';
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+const ADMIN_EMAILS = ['ochalopha@gmail.com', 'furrsocietyclan@gmail.com'];
 
 export function Music() {
   const { user } = useAuth();
@@ -40,6 +41,8 @@ export function Music() {
   const [newPlIsLocked, setNewPlIsLocked] = useState(false);
   const [newPlPassword, setNewPlPassword] = useState('');
   const [showAddPlForm, setShowAddPlForm] = useState(false);
+
+  const isAdmin = user && user.email && ADMIN_EMAILS.includes(user.email);
 
   // Fetch Rekomendasi/Saran Ejaan dari YouTube Suggest API saat ngetik
   useEffect(() => {
@@ -160,7 +163,7 @@ export function Music() {
   };
 
   const handleDeletePlaylist = async (playlistId: string) => {
-    if (!user) {
+    if (!isAdmin) {
       alert("Akses ditolak! Hanya admin terdaftar yang dapat menghapus playlist.");
       return;
     }
@@ -308,7 +311,7 @@ export function Music() {
               </div>
             </div>
 
-            {/* Control Buttons di HP dibuat Rapi */}
+            {/* Control Buttons */}
             <div className="flex items-center justify-center md:justify-start gap-2 sm:gap-3 pt-1 flex-wrap">
               <button
                 onClick={toggleRepeat}
@@ -430,7 +433,7 @@ export function Music() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center p-4"
+            className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-md flex items-center justify-center p-4"
           >
             <div className="bg-zinc-950 border border-white/15 p-5 sm:p-6 rounded-3xl max-w-sm w-full flex flex-col gap-4 shadow-2xl">
               <h3 className="text-xs sm:text-sm font-bold text-white">
@@ -470,25 +473,25 @@ export function Music() {
         )}
       </AnimatePresence>
 
-      {/* DRAWER PLAYLIST RESPONSIVE MOBILE */}
+      {/* DRAWER PLAYLIST RESPONSIVE MOBILE - Z-INDEX 70 AGAR TIDAK TERTUTUP MENU NAVIGASI */}
       <AnimatePresence>
         {isPlaylistOpen && (
           <motion.div
             initial={{ opacity: 0, x: -100 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
-            className="fixed inset-y-0 left-0 w-full sm:max-w-md bg-zinc-950/95 border-r border-white/15 backdrop-blur-2xl z-50 p-5 sm:p-6 flex flex-col gap-5 sm:gap-6 shadow-2xl overflow-y-auto"
+            className="fixed inset-y-0 left-0 w-full sm:max-w-md bg-zinc-950/98 border-r border-white/15 backdrop-blur-2xl z-[70] p-5 sm:p-6 flex flex-col gap-5 sm:gap-6 shadow-2xl overflow-y-auto"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-2">
               <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                 <ListMusic size={18} className="text-purple-400" />
                 <Translate text="Playlists Kamu" />
               </h3>
               <button
                 onClick={() => setIsPlaylistOpen(false)}
-                className="p-1.5 px-3 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold"
+                className="p-2 px-4 rounded-full bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 text-white text-xs font-bold active:scale-95 transition-all shadow-md"
               >
-                Tutup
+                Tutup ✕
               </button>
             </div>
 
@@ -566,7 +569,8 @@ export function Music() {
                           <h4 className="font-bold text-xs sm:text-sm text-white truncate">{pl.name}</h4>
                         </div>
                         
-                        {user && (
+                        {/* HANYA ADMIN YANG BISA HAPUS PLAYLIST */}
+                        {isAdmin && (
                           <button
                             onClick={() => handleDeletePlaylist(pl.id)}
                             className="p-1 text-zinc-500 hover:text-red-400 transition-colors shrink-0"

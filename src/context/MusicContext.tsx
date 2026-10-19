@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
 
 export interface Song {
   id: string;
@@ -36,6 +36,7 @@ interface MusicContextType {
   setVolumeLevel: (val: number) => void;
   createPlaylist: (name: string, isLocked: boolean, password?: string) => Promise<void>;
   deletePlaylist: (id: string) => Promise<void>;
+  addSongToPlaylist: (playlistId: string, song: Song) => Promise<void>;
 }
 
 const MusicContext = createContext<MusicContextType | null>(null);
@@ -53,7 +54,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playerRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
 
-  // useRef biar event handler YouTube API selalu dapet value state paling update
   const isRepeatRef = useRef(isRepeat);
   const queueRef = useRef(queue);
   const currentSongRef = useRef(currentSong);
@@ -96,29 +96,52 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => clearInterval(timerRef.current);
   }, [isPlaying]);
 
+  // MediaSession API untuk Pemutaran Background di HP
+  const updateMediaSession = () => {
+    if ('mediaSession' in navigator && currentSongRef.current) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSongRef.current.title,
+        artist: currentSongRef.current.artist,
+        album: 'Music Lounge',
+        artwork: [{ src: currentSongRef.current.cover, sizes: '512x512', type: 'image/png' }]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => togglePlay());
+      navigator.mediaSession.setActionHandler('pause', () => togglePlay());
+      navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
+      navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
+    }
+  };
+
   const initPlayer = (videoId: string) => {
     if (playerRef.current && playerRef.current.loadVideoById) {
       playerRef.current.loadVideoById(videoId);
       setIsPlaying(true);
+      updateMediaSession();
     } else if (window.YT && window.YT.Player) {
       playerRef.current = new window.YT.Player('global-yt-player', {
         height: '1',
         width: '1',
         videoId: videoId,
-        playerVars: { autoplay: 1, controls: 0 },
+        playerVars: { 
+          autoplay: 1, 
+          controls: 0,
+          playsinline: 1 
+        },
         events: {
           onReady: (e: any) => {
             e.target.setVolume(volume);
             e.target.playVideo();
             setIsPlaying(true);
+            updateMediaSession();
           },
           onStateChange: (e: any) => {
             if (e.data === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
+              updateMediaSession();
             } else if (e.data === window.YT.PlayerState.PAUSED) {
               setIsPlaying(false);
             } else if (e.data === window.YT.PlayerState.ENDED) {
-              // LOGIKA REPEAT & NEXT AUTOMATIS
               if (isRepeatRef.current) {
                 playerRef.current.seekTo(0, true);
                 playerRef.current.playVideo();
@@ -220,10 +243,27 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await deleteDoc(doc(db, 'playlists', id));
   };
 
+  const addSongToPlaylist = async (playlistId: string, song: Song) => {
+    const targetPl = playlists.find(p => p.id === playlistId);
+    if (!targetPl) return;
+
+    const exists = targetPl.songs?.some(s => s.id === song.id);
+    if (exists) {
+      alert("Lagu ini sudah ada di dalam playlist!");
+      return;
+    }
+
+    const updatedSongs = [...(targetPl.songs || []), song];
+    await updateDoc(doc(db, 'playlists', playlistId), {
+      songs: updatedSongs
+    });
+    alert(`Berhasil menambahkan "${song.title}" ke playlist "${targetPl.name}"!`);
+  };
+
   return (
     <MusicContext.Provider value={{
       currentSong, queue, isPlaying, currentTime, duration, volume, isRepeat, playlists,
-      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist
+      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist
     }}>
       {children}
       <div className="hidden"><div id="global-yt-player" /></div>
