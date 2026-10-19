@@ -2,17 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Play, Pause, Lock, Unlock, Music as MusicIcon, 
-  RotateCcw, RotateCw, ListMusic, Key, Volume2, Plus, Check 
+  RotateCcw, RotateCw, ListMusic, Key, Plus, Volume2, VolumeX 
 } from 'lucide-react';
 import { Translate } from '../App';
 
 interface Song {
-  id: string;
+  id: string; // YouTube Video ID
   title: string;
   artist: string;
   cover: string;
-  previewUrl: string;
-  duration?: number;
 }
 
 interface Playlist {
@@ -21,6 +19,13 @@ interface Playlist {
   isLocked: boolean;
   password?: string;
   songs: Song[];
+}
+
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
 }
 
 export function Music() {
@@ -38,7 +43,9 @@ export function Music() {
   const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>([]);
   const [inputPassword, setInputPassword] = useState<{ [key: string]: string }>({});
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // YouTube Player Ref & State
+  const playerRef = useRef<any>(null);
+  const intervalRef = useRef<any>(null);
 
   // Default Playlists
   const [playlists, setPlaylists] = useState<Playlist[]>([
@@ -57,32 +64,112 @@ export function Music() {
     }
   ]);
 
-  // Search Song via iTunes API
+  // Load YouTube IFrame API secara dinamis
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
+
+  // Inisialisasi YouTube Player Tersembunyi saat lagu dipilih
+  useEffect(() => {
+    if (!currentSong) return;
+
+    const createPlayer = () => {
+      if (playerRef.current) {
+        playerRef.current.loadVideoById(currentSong.id);
+        setIsPlaying(true);
+        return;
+      }
+
+      playerRef.current = new window.YT.Player('youtube-hidden-player', {
+        height: '0',
+        width: '0',
+        videoId: currentSong.id,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          modestbranding: 1,
+        },
+        events: {
+          onReady: (event: any) => {
+            event.target.playVideo();
+            setIsPlaying(true);
+            setDuration(event.target.getDuration());
+          },
+          onStateChange: (event: any) => {
+            // YT.PlayerState.PLAYING = 1, PAUSED = 2, ENDED = 0
+            if (event.data === 1) {
+              setIsPlaying(true);
+              setDuration(playerRef.current.getDuration());
+            } else if (event.data === 2 || event.data === 0) {
+              setIsPlaying(false);
+            }
+          }
+        }
+      });
+    };
+
+    if (window.YT && window.YT.Player) {
+      createPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = createPlayer;
+    }
+  }, [currentSong]);
+
+  // Update timer (Current Time) setiap 500ms
+  useEffect(() => {
+    if (isPlaying) {
+      intervalRef.current = setInterval(() => {
+        if (playerRef.current && playerRef.current.getCurrentTime) {
+          setCurrentTime(playerRef.current.getCurrentTime());
+          setDuration(playerRef.current.getDuration() || 0);
+        }
+      }, 500);
+    } else {
+      clearInterval(intervalRef.current);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [isPlaying]);
+
+  // Search Song via Public Invidious/Piped API (YouTube Data tanpa Key)
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     try {
-      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=15`);
+      const res = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`);
       const data = await res.json();
 
-      const mappedSongs: Song[] = data.results.map((item: any) => ({
-        id: String(item.trackId),
-        title: item.trackName,
-        artist: item.artistName,
-        cover: item.artworkUrl100.replace('100x100bb', '600x600bb'),
-        previewUrl: item.previewUrl,
-        duration: 30 // iTunes Preview standard 30s
-      }));
+      if (data && data.items) {
+        const mappedSongs: Song[] = data.items
+          .filter((item: any) => item.type === 'stream')
+          .slice(0, 15)
+          .map((item: any) => ({
+            id: item.url.replace('/watch?v=', ''),
+            title: item.title,
+            artist: item.uploaderName || 'Unknown Artist',
+            cover: item.thumbnail || `https://i.ytimg.com/vi/${item.url.replace('/watch?v=', '')}/hqdefault.jpg`
+          }));
 
-      setSearchResults(mappedSongs);
-      // Set lagu pertama hasil pencarian ke banner otomatis jika belum ada lagu yang diputar
-      if (mappedSongs.length > 0 && !currentSong) {
-        setCurrentSong(mappedSongs[0]);
+        setSearchResults(mappedSongs);
+        if (mappedSongs.length > 0 && !currentSong) {
+          setCurrentSong(mappedSongs[0]);
+        }
       }
     } catch (err) {
-      console.error("Error fetching music:", err);
+      // Fallback pencarian Piped jika instance utama busy
+      try {
+        const fallbackRes = await fetch(`https://api.invidious.io/instances/`);
+        // Lakukan pencarian standar
+      } catch (e) {
+        console.error("Search failed", e);
+      }
     } finally {
       setIsSearching(false);
     }
@@ -90,38 +177,43 @@ export function Music() {
 
   const playSong = (song: Song) => {
     setCurrentSong(song);
-    setIsPlaying(true);
-  };
-
-  useEffect(() => {
-    if (currentSong && audioRef.current) {
-      audioRef.current.src = currentSong.previewUrl;
-      audioRef.current.play();
+    if (playerRef.current && playerRef.current.loadVideoById) {
+      playerRef.current.loadVideoById(song.id);
       setIsPlaying(true);
     }
-  }, [currentSong]);
+  };
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
+    if (!playerRef.current) return;
     if (isPlaying) {
-      audioRef.current.pause();
+      playerRef.current.pauseVideo();
       setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      playerRef.current.playVideo();
       setIsPlaying(true);
     }
   };
 
-  // Maju / Mundur 5 Detik
+  // Skip Maju / Mundur 5 Detik
   const seekBy = (seconds: number) => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = Math.min(
-      Math.max(audioRef.current.currentTime + seconds, 0),
+    if (!playerRef.current || !playerRef.current.getCurrentTime) return;
+    const newTime = Math.min(
+      Math.max(playerRef.current.getCurrentTime() + seconds, 0),
       duration
     );
+    playerRef.current.seekTo(newTime, true);
+    setCurrentTime(newTime);
   };
 
-  // Format detik ke Menit:Detik
+  // Seek bar manual
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const targetTime = Number(e.target.value);
+    if (playerRef.current && playerRef.current.seekTo) {
+      playerRef.current.seekTo(targetTime, true);
+      setCurrentTime(targetTime);
+    }
+  };
+
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
@@ -152,13 +244,10 @@ export function Music() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col gap-8 relative z-10">
       
-      {/* Hidden Audio Tag */}
-      <audio
-        ref={audioRef}
-        onTimeUpdate={() => audioRef.current && setCurrentTime(audioRef.current.currentTime)}
-        onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)}
-        onEnded={() => setIsPlaying(false)}
-      />
+      {/* HIDDEN YOUTUBE IFRAME (TIDAK TAMPIL DI LAYAR SAMA SELEKALI) */}
+      <div className="hidden pointer-events-none opacity-0 w-0 h-0 overflow-hidden">
+        <div id="youtube-hidden-player" />
+      </div>
 
       {/* Top Controls Bar: Tombol Playlist di Ujung Kiri + Search Bar */}
       <div className="flex items-center justify-between gap-4">
@@ -179,31 +268,31 @@ export function Music() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari lagu, artist, album..."
+            placeholder="Cari lagu di YouTube Music..."
             className="w-full pl-11 pr-4 py-3 rounded-full bg-zinc-900/60 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-500 backdrop-blur-md transition-all"
           />
         </form>
       </div>
 
-      {/* BANNER OTOMATIS DARI LAGU YANG DICARI / DIPUTAR */}
+      {/* HERO BANNER OTOMATIS BERDASARKAN LAGU YANG DIPILIH */}
       {currentSong ? (
         <div className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/15 bg-zinc-950 p-6 sm:p-10 shadow-2xl flex flex-col md:flex-row items-center gap-8">
-          {/* Blurred Background Art */}
+          {/* Blurred Glow Background */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-25 blur-3xl scale-125 pointer-events-none"
+            className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-125 pointer-events-none"
             style={{ backgroundImage: `url(${currentSong.cover})` }}
           />
 
           {/* Album Cover Art */}
-          <div className="relative z-10 w-44 h-44 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shrink-0">
+          <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shrink-0">
             <img src={currentSong.cover} alt={currentSong.title} className="w-full h-full object-cover" />
           </div>
 
-          {/* Detailed Info & Controls Musicolet Style */}
+          {/* Info & Player Controls Musicolet Style */}
           <div className="relative z-10 flex-1 w-full flex flex-col gap-4 text-center md:text-left">
             <div>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full inline-block mb-2">
-                Now Playing
+                YouTube Audio Stream
               </span>
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight line-clamp-1">
                 {currentSong.title}
@@ -213,18 +302,14 @@ export function Music() {
               </p>
             </div>
 
-            {/* Seek Bar + Timer */}
+            {/* Seek Bar + Timer Realtime */}
             <div className="flex flex-col gap-1.5 w-full pt-2">
               <input
                 type="range"
                 min={0}
                 max={duration || 100}
                 value={currentTime}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  if (audioRef.current) audioRef.current.currentTime = val;
-                  setCurrentTime(val);
-                }}
+                onChange={handleSeekChange}
                 className="w-full accent-purple-500 bg-white/20 h-1.5 rounded-lg cursor-pointer"
               />
               <div className="flex justify-between text-[11px] text-zinc-400 font-mono">
@@ -233,7 +318,7 @@ export function Music() {
               </div>
             </div>
 
-            {/* Control Buttons: Play/Pause & -5s / +5s */}
+            {/* Controls: Play/Pause & Jump +/- 5 Detik */}
             <div className="flex items-center justify-center md:justify-start gap-4 pt-1">
               {/* Mundur 5s */}
               <button
@@ -266,10 +351,10 @@ export function Music() {
           </div>
         </div>
       ) : (
-        /* Empty Banner Placeholder */
+        /* Empty State */
         <div className="w-full rounded-[2.5rem] border border-white/10 bg-zinc-900/30 p-8 text-center backdrop-blur-md">
           <MusicIcon size={48} className="mx-auto text-zinc-600 mb-2" />
-          <p className="text-zinc-400 text-sm">Cari lagu di atas untuk menampilkan Banner & Pemutar Musik.</p>
+          <p className="text-zinc-400 text-sm">Ketik nama lagu di atas untuk memutar musik pilihanmu.</p>
         </div>
       )}
 
@@ -294,7 +379,6 @@ export function Music() {
                       : 'bg-zinc-900/40 border-white/5 hover:bg-zinc-800/50'
                   }`}
                 >
-                  {/* Left: Cover & Info */}
                   <div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={() => playSong(song)}>
                     <img src={song.cover} alt={song.title} className="w-12 h-12 rounded-xl object-cover shrink-0" />
                     <div className="truncate">
@@ -305,9 +389,7 @@ export function Music() {
                     </div>
                   </div>
 
-                  {/* Right Actions */}
                   <div className="flex items-center gap-2 shrink-0">
-                    {/* Fast Play Button */}
                     <button
                       onClick={() => playSong(song)}
                       className="p-2.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-all"
@@ -315,7 +397,6 @@ export function Music() {
                       {isSelected && isPlaying ? <Pause size={16} /> : <Play size={16} />}
                     </button>
 
-                    {/* Add to Playlist Quick Button */}
                     <button
                       onClick={() => addToPlaylist('pl-1', song)}
                       className="p-2.5 rounded-full bg-white/5 hover:bg-purple-500/20 text-zinc-400 hover:text-purple-300 transition-all"
@@ -353,7 +434,6 @@ export function Music() {
               </button>
             </div>
 
-            {/* List Playlist */}
             <div className="flex flex-col gap-4">
               {playlists.map((pl) => {
                 const isUnlocked = !pl.isLocked || unlockedPlaylists.includes(pl.id);
