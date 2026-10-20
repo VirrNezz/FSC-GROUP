@@ -23,13 +23,15 @@ export function AI() {
     setLoading(true);
 
     try {
+      // Menggunakan format pemanggilan standar SDK @google/genai terbaru
       const response = await ai.models.generateContent({
         model: 'gemini-1.5-flash',
-        contents: userMessage,
-        // Konfigurasi Personality / Karakter AI di sini!
-        config: {
-          systemInstruction: "Kamu adalah asisten AI resmi untuk komunitas Furry Society Group. Karaktermu ramah, santai, suka menggunakan ekspresi imut atau emotikon kucing/furry (seperti :3, >w<, hehee), dan selalu siap membantu obrolan apa pun dengan hangat.",
-        }
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: userMessage }]
+          }
+        ],
       });
 
       const aiReply = response.text || 'Maaf, aku lagi blank nih.';
@@ -82,7 +84,7 @@ export function AI() {
         ))}
         {loading && (
           <div className="flex items-center gap-3 self-start text-xs text-zinc-400 italic bg-zinc-900/40 p-3 rounded-2xl border border-white/5">
-            <Bot size={14} className="animate-pulse text-purple-400" />
+            <Bot size5={14} className="animate-pulse text-purple-400" />
             <span>AI sedang merangkai kata...</span>
           </div>
         )}
