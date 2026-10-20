@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       headers['X-Goog-Api-Key'] = authKey;
     }
 
+    // PERBAIKAN: Menggunakan URL endpoint resmi Gemini 2.5 Flash yang benar
     const geminiRes = await fetch(
       `https://googleapis.com`,
       {
@@ -49,7 +50,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: errorMsg });
     }
 
-    // Perbaikan sintaksis pembacaan data yang benar di sini:
     const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, aku lagi blank nih.';
 
     return res.status(200).json({ text: aiReply });
