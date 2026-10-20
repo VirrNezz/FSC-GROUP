@@ -1,23 +1,44 @@
-import { GoogleGenAI } from "@google/genai";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { prompt } = req.body;
-    
-    // Server Vercel yang akan membaca token AQ. secara aman di backend
-    const ai = new GoogleGenAI({ apiKey: process.env.VITE_GEMINI_API_KEY });
+    const apiKey = process.env.VITE_GEMINI_API_KEY;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: prompt,
-    });
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API Key belum diset di environment Vercel.' });
+    }
 
-    return res.status(200).json({ text: response.text });
-  } catch (error) {
+    // Menggunakan REST API langsung untuk bypass token AQ.
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }]
+            }
+          ]
+        }),
+      }
+    );
+
+    const data = await geminiRes.json();
+
+    if (!geminiRes.ok) {
+      throw new Error(data.error?.message || 'Gagal terhubung ke Gemini API.');
+    }
+
+    const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, aku lagi blank nih.';
+
+    return res.status(200).json({ text: aiReply });
+  } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
 }
