@@ -7,38 +7,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { prompt } = req.body;
-    const apiKey = process.env.VITE_GEMINI_API_KEY;
+    const token = process.env.VITE_GEMINI_API_KEY;
 
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API Key belum diset di environment Vercel.' });
+    if (!token) {
+      return res.status(500).json({ error: 'API Key/Token belum diset di environment Vercel.' });
     }
 
-// Ganti bagian URL fetch di api/AI.ts menjadi:
-const geminiRes = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: prompt }]
-        }
-      ]
-    }),
-  }
-);
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt tidak boleh kosong.' });
+    }
+
+    // Menggunakan Bearer Token (wajib untuk token AQ. dari Google Cloud Service Account)
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: prompt }]
+            }
+          ]
+        }),
+      }
+    );
 
     const data = await geminiRes.json();
 
     if (!geminiRes.ok) {
-      throw new Error(data.error?.message || 'Gagal terhubung ke Gemini API.');
+      const errorMsg = data.error?.message || 'Gagal terhubung ke Gemini API.';
+      return res.status(geminiRes.status).json({ error: errorMsg });
     }
 
     const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, aku lagi blank nih.';
 
     return res.status(200).json({ text: aiReply });
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || 'Terjadi kesalahan pada server.' });
   }
 }
