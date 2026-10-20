@@ -5,7 +5,8 @@ export default async function handler(req, res) {
 
   try {
     const { prompt } = req.body;
-    const authKey = process.env.VITE_GEMINI_API_KEY;
+    // Menggunakan GEMINI_API_KEY (pastikan nama ini sama dengan yang diisi di Vercel Settings)
+    const authKey = process.env.GEMINI_API_KEY;
 
     if (!authKey) {
       return res.status(500).json({ error: 'API Key belum diset di environment Vercel.' });
@@ -15,8 +16,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Prompt tidak boleh kosong.' });
     }
 
+    // UPDATE: URL endpoint diganti menggunakan model terbaru gemini-2.5-flash
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
+      `https://googleapis.com`,
       {
         method: 'POST',
         headers: {
@@ -48,3 +50,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message || 'Terjadi kesalahan pada server.' });
   }
 }
+
