@@ -5,6 +5,7 @@ export default async function handler(req, res) {
 
   try {
     const { prompt } = req.body;
+    // Mendukung kedua nama environment variable agar tidak nyasar
     const authKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
     if (!authKey) {
@@ -15,25 +16,31 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Prompt tidak boleh kosong.' });
     }
 
-    // Mendapatkan waktu aktual Jakarta secara real-time
     const nowWIB = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "full", timeStyle: "medium" });
 
-    // Menggunakan endpoint Gemini 3 series terbaru (gemini-3.8-flash)
+    // Karena token kamu berawalan 'AQ', kita gunakan Bearer Token authorization
+    const isBearerToken = authKey.startsWith('AQ');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (isBearerToken) {
+      headers['Authorization'] = `Bearer ${authKey}`;
+    } else {
+      headers['X-Goog-Api-Key'] = authKey;
+    }
+
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': authKey
-        },
+        headers: headers,
         body: JSON.stringify({
           system_instruction: {
             parts: [{ 
-              text: `Kamu adalah asisten AI dari lini Gemini 3 yang sangat cerdas, responsif, dan mendalam untuk Furry Society Group. Waktu saat ini di Jakarta adalah ${nowWIB}. Gunakan kemampuan pencarian Google (Google Search) secara aktif untuk menjawab pertanyaan apa pun yang memerlukan informasi valid, data aktual, atau waktu real-time dari internet.` 
+              text: `Kamu adalah asisten AI yang cerdas dan mendalam untuk Furry Society Group. Waktu saat ini di Jakarta adalah ${nowWIB}. Gunakan Google Search secara aktif untuk menjawab pertanyaan yang memerlukan data aktual.` 
             }]
           },
-          // Mengaktifkan Google Search Grounding resmi untuk pencarian internet
           tools: [
             {
               google_search: {}
@@ -53,7 +60,7 @@ export default async function handler(req, res) {
 
     if (!geminiRes.ok) {
       const errorMsg = data.error?.message || 'Gagal terhubung ke Gemini API.';
-      return res.status(geminiRes.status).json({ error: errorMsg });
+      return res.status(500).json({ error: errorMsg });
     }
 
     const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, aku lagi blank nih.';
