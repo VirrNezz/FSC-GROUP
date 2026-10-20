@@ -4,6 +4,7 @@ import { Send, Bot, User, Sparkles } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { Translate } from '../App';
 
+// Inisialisasi GoogleGenAI dengan mengambil dari Environment Variable Vercel / .env
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 export function AI() {
@@ -84,7 +85,7 @@ export function AI() {
         ))}
         {loading && (
           <div className="flex items-center gap-3 self-start text-xs text-zinc-400 italic bg-zinc-900/40 p-3 rounded-2xl border border-white/5">
-            <Bot size5={14} className="animate-pulse text-purple-400" />
+            <Bot size={14} className="animate-pulse text-purple-400" />
             <span>AI sedang merangkai kata...</span>
           </div>
         )}
