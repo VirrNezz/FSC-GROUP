@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
+import { CustomAlert } from '../components/alert';
 
 export interface Song {
   id: string;
@@ -37,6 +38,7 @@ interface MusicContextType {
   createPlaylist: (name: string, isLocked: boolean, password?: string) => Promise<void>;
   deletePlaylist: (id: string) => Promise<void>;
   addSongToPlaylist: (playlistId: string, song: Song) => Promise<void>;
+  showAlert: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 const MusicContext = createContext<MusicContextType | null>(null);
@@ -50,6 +52,25 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [volume, setVolume] = useState(80);
   const [isRepeat, setIsRepeat] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+
+  // State Global Alert
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
+
+  const showAlert = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertState({ isOpen: true, message, type });
+  };
+
+  const closeAlert = () => {
+    setAlertState(prev => ({ ...prev, isOpen: false }));
+  };
 
   const playerRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
@@ -236,11 +257,23 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const createPlaylist = async (name: string, isLocked: boolean, password?: string) => {
-    await addDoc(collection(db, 'playlists'), { name, isLocked, password: password || '', songs: [] });
+    try {
+      await addDoc(collection(db, 'playlists'), { name, isLocked, password: password || '', songs: [] });
+      showAlert(`Playlist "${name}" berhasil dibuat!`, 'success');
+    } catch (err) {
+      console.error(err);
+      showAlert('Gagal menambahkan playlist ke database.', 'error');
+    }
   };
 
   const deletePlaylist = async (id: string) => {
-    await deleteDoc(doc(db, 'playlists', id));
+    try {
+      await deleteDoc(doc(db, 'playlists', id));
+      showAlert('Playlist berhasil dihapus.', 'success');
+    } catch (err) {
+      console.error(err);
+      showAlert('Gagal menghapus playlist dari database.', 'error');
+    }
   };
 
   const addSongToPlaylist = async (playlistId: string, song: Song) => {
@@ -249,7 +282,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const exists = targetPl.songs?.some(s => s.id === song.id);
     if (exists) {
-      alert("Lagu ini sudah ada di dalam playlist!");
+      showAlert('Lagu ini sudah ada di dalam playlist!', 'error');
       return;
     }
 
@@ -257,15 +290,24 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await updateDoc(doc(db, 'playlists', playlistId), {
       songs: updatedSongs
     });
-    alert(`Berhasil menambahkan "${song.title}" ke playlist "${targetPl.name}"!`);
+    showAlert(`Berhasil menambahkan "${song.title}" ke playlist "${targetPl.name}"!`, 'success');
   };
 
   return (
     <MusicContext.Provider value={{
       currentSong, queue, isPlaying, currentTime, duration, volume, isRepeat, playlists,
-      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist
+      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, showAlert
     }}>
       {children}
+
+      {/* Global Custom Alert Component */}
+      <CustomAlert
+        isOpen={alertState.isOpen}
+        message={alertState.message}
+        type={alertState.type}
+        onClose={closeAlert}
+      />
+
       <div className="hidden"><div id="global-yt-player" /></div>
     </MusicContext.Provider>
   );

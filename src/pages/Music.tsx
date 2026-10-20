@@ -17,7 +17,7 @@ export function Music() {
 
   const {
     currentSong, isPlaying, currentTime, duration, volume, isRepeat, playlists,
-    playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist
+    playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, showAlert
   } = useMusic();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,7 +98,7 @@ export function Music() {
     if (!query.trim()) return;
 
     if (!YOUTUBE_API_KEY) {
-      alert("API Key belum diset di file .env!");
+      showAlert("API Key belum diset di file .env!", "error");
       return;
     }
 
@@ -120,10 +120,11 @@ export function Music() {
         setSearchResults(mappedSongs);
         playSong(mappedSongs[0], mappedSongs);
       } else {
-        alert("Lagu tidak ditemukan!");
+        showAlert("Lagu tidak ditemukan!", "error");
       }
     } catch (err) {
       console.error("Pencarian gagal:", err);
+      showAlert("Terjadi kesalahan saat mencari lagu.", "error");
     } finally {
       setIsSearching(false);
     }
@@ -158,13 +159,12 @@ export function Music() {
       setShowAddPlForm(false);
     } catch (err) {
       console.error("Gagal buat playlist:", err);
-      alert("Gagal menambahkan playlist ke database.");
     }
   };
 
   const handleDeletePlaylist = async (playlistId: string) => {
     if (!isAdmin) {
-      alert("Akses ditolak! Hanya admin terdaftar yang dapat menghapus playlist.");
+      showAlert("Akses ditolak! Hanya admin terdaftar yang dapat menghapus playlist.", "error");
       return;
     }
 
@@ -173,7 +173,6 @@ export function Music() {
       await deletePlaylist(playlistId);
     } catch (err) {
       console.error("Gagal hapus playlist:", err);
-      alert("Gagal menghapus playlist dari database.");
     }
   };
 
@@ -182,8 +181,9 @@ export function Music() {
     if (target && target.password === pass) {
       setUnlockedPlaylists(prev => [...prev, playlistId]);
       setInputPassword(prev => ({ ...prev, [playlistId]: '' }));
+      showAlert("Playlist berhasil dibuka!", "success");
     } else {
-      alert("Password playlist salah!");
+      showAlert("Password playlist salah!", "error");
     }
   };
 
