@@ -7,24 +7,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { prompt } = req.body;
-    const token = process.env.VITE_GEMINI_API_KEY;
+    const authKey = process.env.VITE_GEMINI_API_KEY;
 
-    if (!token) {
-      return res.status(500).json({ error: 'API Key/Token belum diset di environment Vercel.' });
+    if (!authKey) {
+      return res.status(500).json({ error: 'API Key belum diset di environment Vercel.' });
     }
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt tidak boleh kosong.' });
     }
 
-    // Menggunakan Bearer Token (wajib untuk format token AQ. dari Google Cloud)
+    // Menggunakan auth key berformat AQ... melalui header x-goog-api-key atau Bearer yang didukung endpoint Generative Language API terbaru
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'X-Goog-Api-Key': authKey
         },
         body: JSON.stringify({
           contents: [
