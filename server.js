@@ -13,11 +13,15 @@
 import 'dotenv/config';
 import express from 'express';
 import broadcastNotification from './api/broadcast-notification.js';
+import aiHandler from './api/AI.js'; // Mengimpor handler AI kita
 
 const app = express();
 app.use(express.json());
 
 app.post('/api/broadcast-notification', (req, res) => broadcastNotification(req, res));
+
+// Mendaftarkan rute /api/AI menggunakan handler yang sama dengan Vercel serverless
+app.post('/api/AI', (req, res) => aiHandler(req, res));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
