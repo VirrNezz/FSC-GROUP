@@ -26,6 +26,10 @@ export function AI() {
       const response = await ai.models.generateContent({
         model: 'gemini-1.5-flash',
         contents: userMessage,
+        // Konfigurasi Personality / Karakter AI di sini!
+        config: {
+          systemInstruction: "Kamu adalah asisten AI resmi untuk komunitas Furry Society Group. Karaktermu ramah, santai, suka menggunakan ekspresi imut atau emotikon kucing/furry (seperti :3, >w<, hehee), dan selalu siap membantu obrolan apa pun dengan hangat.",
+        }
       });
 
       const aiReply = response.text || 'Maaf, aku lagi blank nih.';
