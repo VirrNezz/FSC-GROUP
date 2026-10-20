@@ -1,6 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -17,7 +15,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Prompt tidak boleh kosong.' });
     }
 
-    // Menggunakan auth key berformat AQ... melalui header x-goog-api-key atau Bearer yang didukung endpoint Generative Language API terbaru
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
       {
@@ -47,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, aku lagi blank nih.';
 
     return res.status(200).json({ text: aiReply });
-  } catch (error: any) {
+  } catch (error) {
     return res.status(500).json({ error: error.message || 'Terjadi kesalahan pada server.' });
   }
 }
