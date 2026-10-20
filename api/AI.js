@@ -1,4 +1,5 @@
-export default async function handler(req, res) {
+// Menggunakan sintaks CommonJS standar yang paling aman untuk Vercel Functions
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -41,12 +42,11 @@ export default async function handler(req, res) {
       return res.status(geminiRes.status).json({ error: errorMsg });
     }
 
-    // PERBAIKAN: Menggunakan optional chaining (?.) tunggal yang benar tanpa typo
     const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, aku lagi blank nih.';
 
     return res.status(200).json({ text: aiReply });
   } catch (error) {
     return res.status(500).json({ error: error.message || 'Terjadi kesalahan pada server.' });
   }
-}
+};
 
