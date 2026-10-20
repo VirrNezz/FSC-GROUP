@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   try {
     const { prompt } = req.body;
     
-    // Kunci API aman tersimpan di Environment Variable Vercel (Backend)
+    // Server Vercel yang akan membaca token AQ. secara aman di backend
     const ai = new GoogleGenAI({ apiKey: process.env.VITE_GEMINI_API_KEY });
 
     const response = await ai.models.generateContent({

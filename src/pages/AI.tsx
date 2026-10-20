@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
 import { Translate } from '../App';
-
-// Inisialisasi GoogleGenAI dengan mengambil dari Environment Variable Vercel / .env
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 export function AI() {
   const [messages, setMessages] = useState<{ role: string; text: string }[]>([
@@ -24,20 +20,22 @@ export function AI() {
     setLoading(true);
 
     try {
-      // Menggunakan format pemanggilan standar SDK @google/genai terbaru
-      const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: userMessage }]
-          }
-        ],
+      // Mengirim pesan ke backend serverless Vercel (/api/AI)
+      const res = await fetch('/api/AI', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: userMessage }),
       });
 
-      const aiReply = response.text || 'Maaf, aku lagi blank nih.';
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Terjadi kesalahan pada server AI.');
+      }
+
+      const aiReply = data.text || 'Maaf, aku lagi blank nih.';
       setMessages(prev => [...prev, { role: 'model', text: aiReply }]);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error AI:', err);
       setMessages(prev => [...prev, { role: 'model', text: 'Duh, koneksi ke server AI lagi kendala nih.' }]);
     } finally {
