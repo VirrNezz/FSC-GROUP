@@ -49,3 +49,6 @@ export function CustomAlertModal({ isOpen, type = 'info', message, onClose }: Cu
     </AnimatePresence>
   );
 }
+
+// Tambahkan default export ini di baris paling bawah
+export default CustomAlertModal;
