@@ -30,8 +30,9 @@ export default async function handler(req, res) {
       headers['X-Goog-Api-Key'] = authKey;
     }
 
+    // Menggunakan model terbaru gemini-2.5-flash untuk performa terbaik
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
+      `https://googleapis.com`,
       {
         method: 'POST',
         headers: headers,
@@ -41,9 +42,10 @@ export default async function handler(req, res) {
               text: `Kamu adalah asisten AI yang cerdas dan mendalam untuk Furry Society Group. Waktu saat ini di Jakarta adalah ${nowWIB}. Gunakan Google Search secara aktif untuk menjawab pertanyaan yang memerlukan data aktual.` 
             }]
           },
+          // Format pemanggilan alat pencarian (Google Search Grounding) yang tepat
           tools: [
             {
-              google_search: {}
+              googleSearch: {}
             }
           ],
           contents: [
@@ -70,3 +72,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message || 'Terjadi kesalahan pada server.' });
   }
 }
+

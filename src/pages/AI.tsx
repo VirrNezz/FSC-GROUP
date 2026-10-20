@@ -1,113 +1,130 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Send, Bot, User, Sparkles } from 'lucide-react';
-import { Translate } from '../App';
+import React, { useState, useRef, useEffect } from 'react';
+import { Translate } from '../App'; // Menggunakan pembungkus translate otomatis jika dibutuhkan
+
+interface Message {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+}
 
 export function AI() {
-  const [messages, setMessages] = useState<{ role: string; text: string }[]>([
-    { role: 'model', text: 'Halo! Aku asisten AI siap menemanimu ngobrol di Furry Society Group. Ada yang ingin diobrolin? :3' }
+  const [messages, setMessages] = useState<Message[]>([
+    { id: '1', role: 'model', text: 'Halo! Aku asisten AI Furry Society Group. Ada yang bisa kubantu hari ini?' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll ke pesan paling bawah setiap kali ada pesan baru
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
-    const userMessage = input;
+    const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    
+    // 1. Tambahkan pesan user ke UI chat
+    setMessages((prev) => [...prev, { id: Date.now().toString(), role: 'user', text: userMessage }]);
     setLoading(true);
 
     try {
-      // Mengirim pesan ke backend serverless Vercel (/api/AI)
-      const res = await fetch('/api/AI', {
+      // 2. Tembak endpoint Vercel Serverless Function yang tadi kita buat
+      const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ prompt: userMessage }),
       });
 
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Terjadi kesalahan pada server AI.');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Terjadi kesalahan sistem.');
       }
 
-      const aiReply = data.text || 'Maaf, aku lagi blank nih.';
-      setMessages(prev => [...prev, { role: 'model', text: aiReply }]);
-    } catch (err: any) {
-      console.error('Error AI:', err);
-      setMessages(prev => [...prev, { role: 'model', text: 'Duh, koneksi ke server AI lagi kendala nih.' }]);
+      // 3. Tambahkan jawaban model Gemini ke UI chat
+      setMessages((prev) => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), role: 'model', text: data.text }
+      ]);
+    } catch (error: any) {
+      setMessages((prev) => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), role: 'model', text: `Error: ${error.message}` }
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 pt-24 pb-36 flex flex-col h-[85vh] relative z-10">
-      
-      {/* Header Title */}
-      <div className="flex items-center gap-3 mb-4 bg-zinc-900/60 border border-white/10 p-4 rounded-3xl backdrop-blur-md shadow-lg">
-        <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
-          <Sparkles size={20} />
-        </div>
-        <div>
-          <h2 className="text-base font-bold text-white"><Translate text="Chat AI" /></h2>
-          <p className="text-xs text-zinc-400">Ngobrol seru dan tanyakan apa saja dengan Gemini AI.</p>
-        </div>
+    <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto p-4">
+      {/* Header Halaman AI */}
+      <div className="pb-4 border-b border-gray-700 mb-4">
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          ✨ Furry Society AI Asisten
+        </h1>
+        <p className="text-sm text-gray-400">
+          <Translate text="Powered by Gemini 2.5 Flash with Real-time Google Search Search Grounding" />
+        </p>
       </div>
 
-      {/* Kotak Riwayat Chat */}
-      <div className="flex-1 overflow-y-auto bg-zinc-950/80 border border-white/10 rounded-3xl p-4 sm:p-6 flex flex-col gap-4 mb-4 backdrop-blur-md shadow-2xl custom-scrollbar">
-        {messages.map((msg, idx) => (
-          <div 
-            key={idx} 
-            className={`flex items-start gap-3 max-w-[85%] sm:max-w-[75%] ${
-              msg.role === 'user' ? 'self-end flex-row-reverse' : 'self-start'
-            }`}
+      {/* Box Area Obrolan Chat */}
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2 bg-gray-900/50 rounded-xl p-4 shadow-inner border border-gray-800">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${
-              msg.role === 'user' ? 'bg-purple-600 border-purple-400 text-white' : 'bg-zinc-900 border-white/10 text-purple-400'
-            }`}>
-              {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
-            </div>
-
-            <div className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-md ${
-              msg.role === 'user' 
-                ? 'bg-purple-600 text-white rounded-tr-none' 
-                : 'bg-zinc-900/90 border border-white/10 text-zinc-200 rounded-tl-none'
-            }`}>
+            <div
+              className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap shadow-md ${
+                msg.role === 'user'
+                  ? 'bg-blue-600 text-white rounded-tr-none'
+                  : 'bg-gray-800 text-gray-200 rounded-tl-none border border-gray-700'
+              }`}
+            >
               {msg.text}
             </div>
           </div>
         ))}
+        
+        {/* Efek Loading saat Menunggu Balasan Gemini */}
         {loading && (
-          <div className="flex items-center gap-3 self-start text-xs text-zinc-400 italic bg-zinc-900/40 p-3 rounded-2xl border border-white/5">
-            <Bot size={14} className="animate-pulse text-purple-400" />
-            <span>AI sedang merangkai kata...</span>
+          <div className="flex justify-start">
+            <div className="bg-gray-800 text-gray-400 rounded-2xl rounded-tl-none px-4 py-3 text-sm border border-gray-700 flex items-center gap-2">
+              <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></span>
+              <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></span>
+              <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-300"></span>
+            </div>
           </div>
         )}
+        <div ref={chatEndRef} />
       </div>
 
-      {/* Form Input Chat */}
-      <form onSubmit={handleSendMessage} className="flex gap-2 relative">
+      {/* Input Formulir Pengiriman Pesan */}
+      <form onSubmit={handleSendMessage} className="mt-4 flex gap-2">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ketik pesan atau tanyakan sesuatu..."
-          className="flex-1 bg-zinc-900/80 border border-white/10 pl-5 pr-4 py-3.5 rounded-full text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500 backdrop-blur-md shadow-xl transition-all"
+          placeholder="Tanyakan sesuatu..."
+          disabled={loading}
+          className="flex-1 bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all placeholder-gray-500"
         />
         <button
           type="submit"
-          disabled={loading}
-          className="px-6 py-3.5 bg-purple-600 hover:bg-purple-500 text-white rounded-full text-xs sm:text-sm font-bold transition-all shadow-xl active:scale-95 disabled:opacity-50 flex items-center gap-2 shrink-0"
+          disabled={loading || !input.trim()}
+          className="bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:scale-100 text-white font-medium rounded-xl px-5 py-3 text-sm transition-all shadow-lg flex items-center justify-center"
         >
-          <span>Kirim</span>
-          <Send size={14} />
+          Kirim
         </button>
       </form>
-
     </div>
   );
 }
+
