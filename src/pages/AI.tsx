@@ -33,7 +33,7 @@ export function AI() {
 
     try {
       // 2. Tembak endpoint Vercel Serverless Function yang tadi kita buat
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/AI', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
