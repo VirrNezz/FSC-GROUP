@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Prompt tidak boleh kosong.' });
     }
 
-    // Menggunakan Bearer Token (wajib untuk token AQ. dari Google Cloud Service Account)
+    // Menggunakan Bearer Token (wajib untuk format token AQ. dari Google Cloud)
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
       {
