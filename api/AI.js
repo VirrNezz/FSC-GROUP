@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+  // 1. Validasi Method
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -7,8 +8,9 @@ export default async function handler(req, res) {
     const { prompt } = req.body;
     const authKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
+    // 2. Proteksi jika API Key kosong
     if (!authKey) {
-      return res.status(500).json({ error: 'API Key belum diset di environment Vercel.' });
+      return res.status(500).json({ error: 'API Key belum diatur di Environment Variables Vercel.' });
     }
 
     if (!prompt) {
@@ -16,8 +18,12 @@ export default async function handler(req, res) {
     }
 
     const nowWIB = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "full", timeStyle: "medium" });
+    
+    // 3. Konfigurasi Header berdasarkan jenis Kunci API (AQ vs AIza)
     const isBearerToken = authKey.startsWith('AQ');
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 
+      'Content-Type': 'application/json' 
+    };
 
     if (isBearerToken) {
       headers['Authorization'] = `Bearer ${authKey}`;
@@ -25,9 +31,9 @@ export default async function handler(req, res) {
       headers['X-Goog-Api-Key'] = authKey;
     }
 
-    // PERBAIKAN: Menggunakan URL endpoint resmi Gemini 2.5 Flash yang benar
+    // 4. Request ke Endpoint Resmi Gemini 2.5 Flash
     const geminiRes = await fetch(
-      `https://googleapis.com`,
+      'https://googleapis.com',
       {
         method: 'POST',
         headers: headers,
@@ -43,18 +49,30 @@ export default async function handler(req, res) {
       }
     );
 
-    const data = await geminiRes.json();
-
+    // 5. Cek status respons HTTP Google Gemini
     if (!geminiRes.ok) {
-      const errorMsg = data.error?.message || 'Gagal terhubung ke Gemini API.';
-      return res.status(500).json({ error: errorMsg });
+      const errText = await geminiRes.text();
+      return res.status(geminiRes.status).json({ 
+        error: `Google Gemini API Error (Status ${geminiRes.status}): ${errText}` 
+      });
     }
 
-    const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, aku lagi blank nih.';
+    const data = await geminiRes.json();
 
-    return res.status(200).json({ text: aiReply });
+    // 6. Parsing data secara aman menggunakan pemeriksaan properti bertahap
+    if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+      const aiReply = data.candidates[0].content.parts[0].text;
+      return res.status(200).json({ text: aiReply });
+    }
+
+    return res.status(500).json({ error: 'Struktur respons dari Gemini tidak sesuai atau kosong.', rawData: data });
+
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'Terjadi kesalahan pada server.' });
+    // Mengembalikan pesan error asli ke frontend agar bisa dibaca langsung di konsol browser
+    return res.status(500).json({ 
+      error: 'Terjadi kegagalan internal pada Serverless Function.',
+      details: error.message || String(error)
+    });
   }
 }
 
