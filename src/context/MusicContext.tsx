@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
-import CustomAlert from '../components/alert';
+import CustomAlert from '../components/alert';[cite: 6]
 
 export interface Song {
   id: string;
@@ -25,7 +25,7 @@ interface MusicContextType {
   currentTime: number;
   duration: number;
   volume: number;
-  isRepeat: boolean;
+  repeatMode: 'off' | 'song' | 'playlist';
   playlists: Playlist[];
   playSong: (song: Song, songList?: Song[]) => void;
   togglePlay: () => void;
@@ -38,6 +38,8 @@ interface MusicContextType {
   createPlaylist: (name: string, isLocked: boolean, password?: string) => Promise<void>;
   deletePlaylist: (id: string) => Promise<void>;
   addSongToPlaylist: (playlistId: string, song: Song) => Promise<void>;
+  playPlaylist: (playlist: Playlist) => void;
+  removeSongFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
   showAlert: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
@@ -50,7 +52,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(80);
-  const [isRepeat, setIsRepeat] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<'off' | 'song' | 'playlist'>('off');
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   // State Global Alert
@@ -75,11 +77,11 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playerRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
 
-  const isRepeatRef = useRef(isRepeat);
+  const repeatModeRef = useRef(repeatMode);
   const queueRef = useRef(queue);
   const currentSongRef = useRef(currentSong);
 
-  useEffect(() => { isRepeatRef.current = isRepeat; }, [isRepeat]);
+  useEffect(() => { repeatModeRef.current = repeatMode; }, [repeatMode]);
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { currentSongRef.current = currentSong; }, [currentSong]);
 
@@ -163,7 +165,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             } else if (e.data === window.YT.PlayerState.PAUSED) {
               setIsPlaying(false);
             } else if (e.data === window.YT.PlayerState.ENDED) {
-              if (isRepeatRef.current) {
+              if (repeatModeRef.current === 'song') {
                 playerRef.current.seekTo(0, true);
                 playerRef.current.playVideo();
                 setIsPlaying(true);
@@ -188,7 +190,14 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setCurrentSong(nextSong);
       initPlayer(nextSong.id);
     } else {
-      setIsPlaying(false);
+      // Jika sudah di lagu terakhir dalam queue/playlist
+      if (repeatModeRef.current === 'playlist' && currentList.length > 0) {
+        const firstSong = currentList[0];
+        setCurrentSong(firstSong);
+        initPlayer(firstSong.id);
+      } else {
+        setIsPlaying(false);
+      }
     }
   };
 
@@ -232,7 +241,11 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleRepeat = () => {
-    setIsRepeat(prev => !prev);
+    setRepeatMode(prev => {
+      if (prev === 'off') return 'song';
+      if (prev === 'song') return 'playlist';
+      return 'off';
+    });
   };
 
   const seekBy = (seconds: number) => {
@@ -293,10 +306,30 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showAlert(`Berhasil menambahkan "${song.title}" ke playlist "${targetPl.name}"!`, 'success');
   };
 
+  const playPlaylist = (playlist: Playlist) => {
+    if (!playlist.songs || playlist.songs.length === 0) {
+      showAlert('Playlist ini masih kosong!', 'error');
+      return;
+    }
+    playSong(playlist.songs[0], playlist.songs);
+    showAlert(`Memutar playlist: ${playlist.name}`, 'success');
+  };
+
+  const removeSongFromPlaylist = async (playlistId: string, songId: string) => {
+    const targetPl = playlists.find(p => p.id === playlistId);
+    if (!targetPl) return;
+
+    const updatedSongs = (targetPl.songs || []).filter(s => s.id !== songId);
+    await updateDoc(doc(db, 'playlists', playlistId), {
+      songs: updatedSongs
+    });
+    showAlert('Lagu berhasil dihapus dari playlist!', 'success');
+  };
+
   return (
     <MusicContext.Provider value={{
-      currentSong, queue, isPlaying, currentTime, duration, volume, isRepeat, playlists,
-      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, showAlert
+      currentSong, queue, isPlaying, currentTime, duration, volume, repeatMode, playlists,
+      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, playPlaylist, removeSongFromPlaylist, showAlert
     }}>
       {children}
 

@@ -16,8 +16,8 @@ export function Music() {
   const { user } = useAuth();
 
   const {
-    currentSong, isPlaying, currentTime, duration, volume, isRepeat, playlists,
-    playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, showAlert
+    currentSong, isPlaying, currentTime, duration, volume, repeatMode, playlists,
+    playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, playPlaylist, removeSongFromPlaylist, showAlert
   } = useMusic();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -316,13 +316,17 @@ export function Music() {
               <button
                 onClick={toggleRepeat}
                 className={`p-2.5 sm:p-3 rounded-full border transition-all active:scale-90 ${
-                  isRepeat 
+                  repeatMode !== 'off' 
                     ? 'bg-purple-500 text-white border-purple-400 shadow-lg shadow-purple-500/30' 
                     : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'
                 }`}
-                title={isRepeat ? "Repeat 1 Song Active" : "Repeat Off"}
+                title={`Repeat Mode: ${repeatMode}`}
               >
-                <Repeat size={16} />
+                <div className="relative flex items-center justify-center">
+                  <Repeat size={16} />
+                  {repeatMode === 'song' && <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-black px-1 rounded-full text-purple-300">1</span>}
+                  {repeatMode === 'playlist' && <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-black px-1 rounded-full text-emerald-300">All</span>}
+                </div>
               </button>
 
               <button
@@ -569,16 +573,29 @@ export function Music() {
                           <h4 className="font-bold text-xs sm:text-sm text-white truncate">{pl.name}</h4>
                         </div>
                         
-                        {/* HANYA ADMIN YANG BISA HAPUS PLAYLIST */}
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleDeletePlaylist(pl.id)}
-                            className="p-1 text-zinc-500 hover:text-red-400 transition-colors shrink-0"
-                            title="Hapus Playlist"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {/* TOMBOL PUTAR PLAYLIST */}
+                          {isUnlocked && pl.songs && pl.songs.length > 0 && (
+                            <button
+                              onClick={() => playPlaylist(pl)}
+                              className="px-2.5 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
+                              title="Putar Semua Lagu"
+                            >
+                              <Play size={10} /> Putar
+                            </button>
+                          )}
+
+                          {/* HANYA ADMIN YANG BISA HAPUS PLAYLIST */}
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeletePlaylist(pl.id)}
+                              className="p-1 text-zinc-500 hover:text-red-400 transition-colors"
+                              title="Hapus Playlist"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {!isUnlocked ? (
@@ -609,11 +626,23 @@ export function Music() {
                             <p className="text-[10px] sm:text-[11px] text-zinc-500 text-center py-2">Playlist ini masih kosong.</p>
                           ) : (
                             pl.songs.map((s) => (
-                              <div key={s.id} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-white/5">
-                                <span className="text-xs text-zinc-300 truncate max-w-[180px] sm:max-w-[200px]">{s.title}</span>
-                                <button onClick={() => playSong(s)} className="p-1 hover:bg-white/10 rounded-full text-white">
-                                  <Play size={12} />
-                                </button>
+                              <div key={s.id} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-white/5 group">
+                                <span className="text-xs text-zinc-300 truncate max-w-[160px] sm:max-w-[180px] cursor-pointer" onClick={() => playSong(s, pl.songs)}>{s.title}</span>
+                                
+                                <div className="flex items-center gap-1">
+                                  {/* HAPUS LAGU SATUAN DARI PLAYLIST */}
+                                  <button
+                                    onClick={() => removeSongFromPlaylist(pl.id, s.id)}
+                                    className="p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Hapus lagu ini"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+
+                                  <button onClick={() => playSong(s, pl.songs)} className="p-1 hover:bg-white/10 rounded-full text-white">
+                                    <Play size= {12} />
+                                  </button>
+                                </div>
                               </div>
                             ))
                           )}
