@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
-import CustomAlert from '../components/alert';[cite: 6]
+import CustomAlert from '../components/alert';
 
 export interface Song {
   id: string;
