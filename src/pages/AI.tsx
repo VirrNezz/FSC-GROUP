@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Translate } from '../App';
-import { Send, Bot, User, Sparkles } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Copy, Trash2, Check } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -10,22 +10,51 @@ interface Message {
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
+const QUICK_PROMPTS = [
+  "Halo Suness! Lagi ngapain nih?",
+  "Ceritain dong tentang wujud naga-sigung kamu",
+  "Rekomendasiin lagu santai buat ngoding",
+  "Tips ngerakit & servis PC dong"
+];
+
 export function AI() {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'assistant', text: 'Halo! Aku asisten AI Groq untuk Furry Society Group. Ada yang bisa kubantu hari ini?' }
-  ]);
+  // Load riwayat chat dari localStorage jika ada
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem('fsc_ai_messages');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Gagal memuat riwayat chat", e);
+    }
+    return [
+      { id: '1', role: 'assistant', text: 'Halo! Aku Suness, asisten naga-sigung berwujud hibrida dari Furry Society Group (FSC). Mau ngobrol santai, nanya soal teknologi, atau butuh bantuan apa nih hari ini? :3' }
+    ];
+  });
+
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Simpan riwayat chat ke localStorage setiap kali ada perubahan messages
+  useEffect(() => {
+    try {
+      localStorage.setItem('fsc_ai_messages', JSON.stringify(messages));
+    } catch (e) {
+      console.error("Gagal menyimpan riwayat chat", e);
+    }
+  }, [messages]);
 
   // Auto-scroll ke pesan paling bawah setiap kali ada pesan baru
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
+  const handleSendMessage = async (textToSend?: string) => {
+    const messageText = textToSend || input;
+    if (!messageText.trim() || loading) return;
 
     if (!GROQ_API_KEY) {
       setMessages((prev) => [
@@ -35,15 +64,15 @@ export function AI() {
       return;
     }
 
-    const userMessage = input.trim();
-    setInput('');
+    const userMessage = messageText.trim();
+    if (!textToSend) setInput('');
     
     // 1. Tambahkan pesan user ke UI chat
     setMessages((prev) => [...prev, { id: Date.now().toString(), role: 'user', text: userMessage }]);
     setLoading(true);
 
     try {
-      // 2. Tembak Groq API Endpoint menggunakan model openai/gpt-oss-120b
+      // 2. Tembak Groq API Endpoint dengan System Prompt khusus karakter Suness
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -53,7 +82,10 @@ export function AI() {
         body: JSON.stringify({
           model: "openai/gpt-oss-120b",
           messages: [
-            { role: "system", content: "Kamu adalah asisten AI yang ramah, cerdas, dan membantu di platform Furry Society Group." },
+            { 
+              role: "system", 
+              content: "Kamu adalah Suness, seekor naga-sigung (dragon-skunk hybrid) antropomorfik berwarna hitam-putih dengan corak sirkuit hijau menyala. Kamu adalah asisten setia dan maskot dari platform Furry Society Group (FSC). Kepribadianmu ramah, asyik diajak ngobrol santai, humoris, setia kawan, paham banget soal teknologi (coding, Linux, web dev, hardware komputer/HP), fandom furry, game, dan seni digital. Jawablah dengan natural, gunakan gaya bahasa obrolan santai khas anak muda/gamer Indonesia (seperti menggunakan sapaan akrab, kata 'nih', 'dong', atau emotikon lucu seperti ':3'), dan pastikan jawabanmu akurat dan tidak melantur. Jangan pernah membahas konten sensitif." 
+            },
             { role: "user", content: userMessage }
           ],
           stream: false
@@ -68,7 +100,7 @@ export function AI() {
 
       const replyText = data.choices[0].message.content;
 
-      // 3. Tambahkan jawaban Groq ke UI chat
+      // 3. Tambahkan jawaban Suness ke UI chat
       setMessages((prev) => [
         ...prev,
         { id: (Date.now() + 1).toString(), role: 'assistant', text: replyText }
@@ -76,25 +108,47 @@ export function AI() {
     } catch (error: any) {
       setMessages((prev) => [
         ...prev,
-        { id: (Date.now() + 1).toString(), role: 'assistant', text: `Error: ${error.message}` }
+        { id: (Date.now() + 1).toString(), role: 'assistant', text: `Duh, Suness lagi pusing nih kena error: ${error.message}` }
       ]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleClearHistory = () => {
+    const initialMsg = [{ id: '1', role: 'assistant', text: 'Riwayat chat udah dibersihin! Mau ngobrolin apa lagi sama Suness? :3' }];
+    setMessages(initialMsg);
+    localStorage.removeItem('fsc_ai_messages');
+  };
+
+  const handleCopyText = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-32 sm:pb-36 flex flex-col h-[calc(100vh-80px)] relative z-10">
       
       {/* Header Halaman AI */}
-      <div className="pb-4 border-b border-white/10 mb-4 backdrop-blur-md">
-        <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-          <Sparkles className="text-purple-400" size={24} />
-          Furry Society Groq AI
-        </h1>
-        <p className="text-xs sm:text-sm text-zinc-400">
-          <Translate text="Powered by Groq OpenAI GPT-OSS Model" />
-        </p>
+      <div className="pb-4 border-b border-white/10 mb-4 backdrop-blur-md flex items-center justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+            <Sparkles className="text-purple-400" size={24} />
+            Suness - FSC AI Companion
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-400">
+            <Translate text="Dragon-Skunk Hybrid Assistant for Furry Society Group" />
+          </p>
+        </div>
+        <button
+          onClick={handleClearHistory}
+          title="Bersihkan Riwayat Chat"
+          className="bg-zinc-900/80 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-zinc-400 hover:text-red-400 p-2.5 rounded-2xl transition-all flex items-center gap-2 text-xs"
+        >
+          <Trash2 size={16} />
+          <span className="hidden sm:inline">Reset Chat</span>
+        </button>
       </div>
 
       {/* Box Area Obrolan Chat */}
@@ -102,7 +156,7 @@ export function AI() {
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex items-start gap-3 group ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             {msg.role === 'assistant' && (
               <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
@@ -110,14 +164,27 @@ export function AI() {
               </div>
             )}
 
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 text-xs sm:text-sm whitespace-pre-wrap shadow-md leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-purple-600 text-white rounded-tr-none'
-                  : 'bg-zinc-900 text-zinc-200 rounded-tl-none border border-white/10'
-              }`}
-            >
-              {msg.text}
+            <div className="relative max-w-[80%] flex flex-col">
+              <div
+                className={`rounded-2xl px-4 py-3 text-xs sm:text-sm whitespace-pre-wrap shadow-md leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-purple-600 text-white rounded-tr-none'
+                    : 'bg-zinc-900 text-zinc-200 rounded-tl-none border border-white/10'
+                }`}
+              >
+                {msg.text}
+              </div>
+
+              {/* Tombol Copy teks per bubble */}
+              {msg.role === 'assistant' && (
+                <button
+                  onClick={() => handleCopyText(msg.text, msg.id)}
+                  className="absolute -bottom-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-800 border border-white/10 text-zinc-300 hover:text-white px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1 shadow-md"
+                >
+                  {copiedId === msg.id ? <Check size={10} className="text-green-400" /> : <Copy size={10} />}
+                  {copiedId === msg.id ? 'Disalin!' : 'Salin'}
+                </button>
+              )}
             </div>
 
             {msg.role === 'user' && (
@@ -128,7 +195,7 @@ export function AI() {
           </div>
         ))}
         
-        {/* Efek Loading saat Menunggu Balasan */}
+        {/* Efek Loading saat Menunggu Balasan Suness */}
         {loading && (
           <div className="flex items-start gap-3 justify-start">
             <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
@@ -144,13 +211,27 @@ export function AI() {
         <div ref={chatEndRef} />
       </div>
 
+      {/* Quick Prompts Chips */}
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+        {QUICK_PROMPTS.map((prompt, index) => (
+          <button
+            key={index}
+            onClick={() => handleSendMessage(prompt)}
+            disabled={loading}
+            className="whitespace-nowrap bg-zinc-900/80 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/40 text-zinc-300 hover:text-purple-300 text-xs px-3 py-1.5 rounded-full transition-all disabled:opacity-50"
+          >
+            🐾 {prompt}
+          </button>
+        ))}
+      </div>
+
       {/* Input Formulir Pengiriman Pesan */}
-      <form onSubmit={handleSendMessage} className="mt-4 flex gap-2">
+      <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="mt-2 flex gap-2">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Tulis pesan ke Groq AI..."
+          placeholder="Ngobrol santai sama Suness..."
           disabled={loading}
           className="flex-1 bg-zinc-900/80 border border-white/10 text-white rounded-2xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:border-purple-500 disabled:opacity-50 transition-all backdrop-blur-md"
         />
