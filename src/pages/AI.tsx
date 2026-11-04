@@ -43,7 +43,7 @@ export function AI() {
     setLoading(true);
 
     try {
-      // 2. Tembak Groq API Endpoint
+      // 2. Tembak Groq API Endpoint menggunakan model llama-3.1-8b-instant
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -51,9 +51,9 @@ export function AI() {
           'Authorization': `Bearer ${GROQ_API_KEY}`
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "llama-3.1-8b-instant",
           messages: [
-            { role: "system", content: "Kamu adalah asisten AI yang ramah dan cerdas di platform Furry Society Group." },
+            { role: "system", content: "Kamu adalah asisten AI yang ramah, cerdas, dan membantu di platform Furry Society Group." },
             { role: "user", content: userMessage }
           ],
           stream: false
@@ -93,7 +93,7 @@ export function AI() {
           Furry Society Groq AI
         </h1>
         <p className="text-xs sm:text-sm text-zinc-400">
-          <Translate text="Powered by Groq Llama 3.3 Versatile" />
+          <Translate text="Powered by Groq Llama 3.1 8B Instant" />
         </p>
       </div>
 
