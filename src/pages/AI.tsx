@@ -8,11 +8,11 @@ interface Message {
   text: string;
 }
 
-const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY;
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
 export function AI() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'assistant', text: 'Halo! Aku asisten AI DeepSeek untuk Furry Society Group. Ada yang bisa kubantu hari ini?' }
+    { id: '1', role: 'assistant', text: 'Halo! Aku asisten AI Groq untuk Furry Society Group. Ada yang bisa kubantu hari ini?' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,10 +27,10 @@ export function AI() {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
-    if (!DEEPSEEK_API_KEY) {
+    if (!GROQ_API_KEY) {
       setMessages((prev) => [
         ...prev,
-        { id: Date.now().toString(), role: 'assistant', text: 'Error: VITE_DEEPSEEK_API_KEY belum di-set di environment variables Vercel atau file .env!' }
+        { id: Date.now().toString(), role: 'assistant', text: 'Error: VITE_GROQ_API_KEY belum di-set di environment variables Vercel atau file .env!' }
       ]);
       return;
     }
@@ -43,15 +43,15 @@ export function AI() {
     setLoading(true);
 
     try {
-      // 2. Tembak langsung DeepSeek API
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
+      // 2. Tembak Groq API Endpoint
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+          'Authorization': `Bearer ${GROQ_API_KEY}`
         },
         body: JSON.stringify({
-          model: "deepseek-chat",
+          model: "llama-3.3-70b-versatile",
           messages: [
             { role: "system", content: "Kamu adalah asisten AI yang ramah dan cerdas di platform Furry Society Group." },
             { role: "user", content: userMessage }
@@ -63,12 +63,12 @@ export function AI() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Terjadi kesalahan saat menghubungi server DeepSeek.');
+        throw new Error(data.error?.message || 'Terjadi kesalahan saat menghubungi server Groq.');
       }
 
       const replyText = data.choices[0].message.content;
 
-      // 3. Tambahkan jawaban DeepSeek ke UI chat
+      // 3. Tambahkan jawaban Groq ke UI chat
       setMessages((prev) => [
         ...prev,
         { id: (Date.now() + 1).toString(), role: 'assistant', text: replyText }
@@ -90,10 +90,10 @@ export function AI() {
       <div className="pb-4 border-b border-white/10 mb-4 backdrop-blur-md">
         <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
           <Sparkles className="text-purple-400" size={24} />
-          Furry Society DeepSeek AI
+          Furry Society Groq AI
         </h1>
         <p className="text-xs sm:text-sm text-zinc-400">
-          <Translate text="Powered by DeepSeek Chat Model" />
+          <Translate text="Powered by Groq Llama 3.3 Versatile" />
         </p>
       </div>
 
@@ -128,7 +128,7 @@ export function AI() {
           </div>
         ))}
         
-        {/* Efek Loading saat Menunggu Balasan DeepSeek */}
+        {/* Efek Loading saat Menunggu Balasan */}
         {loading && (
           <div className="flex items-start gap-3 justify-start">
             <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
@@ -149,9 +149,8 @@ export function AI() {
         <input
           type="text"
           value={input}
-          onChange={(e) => setSearchQuery && setInput(e.target.value)} // Menggunakan setter input standar
-          onInput={(e: any) => setInput(e.target.value)}
-          placeholder="Tulis pesan ke DeepSeek AI..."
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Tulis pesan ke Groq AI..."
           disabled={loading}
           className="flex-1 bg-zinc-900/80 border border-white/10 text-white rounded-2xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:border-purple-500 disabled:opacity-50 transition-all backdrop-blur-md"
         />
