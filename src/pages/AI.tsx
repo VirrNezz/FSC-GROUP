@@ -18,7 +18,6 @@ const QUICK_PROMPTS = [
 ];
 
 export function AI() {
-  // Load riwayat chat dari localStorage jika ada
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const saved = localStorage.getItem('fsc_ai_messages');
@@ -38,7 +37,6 @@ export function AI() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Simpan riwayat chat ke localStorage setiap kali ada perubahan messages
   useEffect(() => {
     try {
       localStorage.setItem('fsc_ai_messages', JSON.stringify(messages));
@@ -47,7 +45,6 @@ export function AI() {
     }
   }, [messages]);
 
-  // Auto-scroll ke pesan paling bawah setiap kali ada pesan baru
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
@@ -67,12 +64,10 @@ export function AI() {
     const userMessage = messageText.trim();
     if (!textToSend) setInput('');
     
-    // 1. Tambahkan pesan user ke UI chat
     setMessages((prev) => [...prev, { id: Date.now().toString(), role: 'user', text: userMessage }]);
     setLoading(true);
 
     try {
-      // 2. Tembak Groq API Endpoint dengan System Prompt agar Suness merespons bersih tanpa simbol markdown
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -84,7 +79,7 @@ export function AI() {
           messages: [
             { 
               role: "system", 
-              content: "Kamu adalah Suness, seekor naga-sigung (dragon-skunk hybrid) antropomorfik berwarna hitam-putih dengan corak sirkuit hijau menyala. Kamu adalah asisten setia dan maskot dari platform Furry Society Group (FSC). Kepribadianmu ramah, asyik diajak ngobrol santai, humoris, setia kawan, paham banget soal teknologi (coding, Linux, web dev, hardware komputer/HP), fandom furry, game, dan seni digital. PENTING: Jawablah dengan teks biasa yang bersih, natural, dan santai. JANGAN GUNAKAN simbol markdown seperti tanda bintang ganda (**), garis miring (*), pagar (#), atau tabel bergaris yang bisa merusak tampilan chat. Gunakan gaya bahasa obrolan santai khas anak muda/gamer Indonesia (seperti sapaan akrab, kata 'nih', 'dong', atau emotikon lucu seperti ':3'), dan pastikan jawabanmu akurat serta tidak membahas konten sensitif." 
+              content: "Kamu adalah Suness, seekor naga-sigung (dragon-skunk hybrid) antropomorfik berwarna hitam-putih dengan corak sirkuit hijau menyala. Kamu adalah asisten setia dan maskot dari platform Furry Society Group (FSC). Kepribadianmu ramah, asyik diajak ngobrol santai, humoris, setia kawan, paham banget soal teknologi (coding, Linux, web dev, hardware komputer/HP), fandom furry, game, dan seni digital. PENTING: Jawablah dengan teks biasa yang bersih, natural, dan santai. JANGAN GUNAKAN simbol markdown seperti tanda bintang ganda (**), garis miring (*), pagar (#), atau tabel bergaris. Gunakan gaya bahasa obrolan santai khas anak muda/gamer Indonesia (seperti sapaan akrab, kata 'nih', 'dong', atau emotikon lucu seperti ':3'), dan pastikan jawabanmu akurat serta tidak membahas konten sensitif." 
             },
             { role: "user", content: userMessage }
           ],
@@ -98,11 +93,9 @@ export function AI() {
         throw new Error(data.error?.message || 'Terjadi kesalahan saat menghubungi server Groq.');
       }
 
-      // Bersihkan sisa karakter markdown jikalau masih terbawa dari API
       let replyText = data.choices[0].message.content;
       replyText = replyText.replace(/[*#_`]/g, '');
 
-      // 3. Tambahkan jawaban Suness ke UI chat
       setMessages((prev) => [
         ...prev,
         { id: (Date.now() + 1).toString(), role: 'assistant', text: replyText }
@@ -130,10 +123,10 @@ export function AI() {
   };
 
   return (
-    // Mengunci tinggi kontainer utama agar halaman web tidak ikut-ikutan scroll ke bawah
-    <div className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-6 flex flex-col h-screen overflow-hidden relative z-10">
+    // Menggunakan fixed height dan flex box ketat agar halaman web tidak bisa scroll sama sekali
+    <div className="absolute inset-x-0 top-16 bottom-0 w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col overflow-hidden z-10 py-4">
       
-      {/* Header Halaman AI (Diam di atas, tidak ikut scroll) */}
+      {/* Header Halaman AI */}
       <div className="pb-3 border-b border-white/10 mb-3 backdrop-blur-md flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
@@ -154,7 +147,7 @@ export function AI() {
         </button>
       </div>
 
-      {/* Box Area Obrolan Chat (Hanya area ini yang memiliki scrollbar sendiri) */}
+      {/* Box Area Obrolan Chat (Satu-satunya area yang punya scrollbar) */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 bg-zinc-950/60 border border-white/10 rounded-3xl p-4 sm:p-6 shadow-2xl backdrop-blur-md min-h-0">
         {messages.map((msg) => (
           <div
@@ -178,7 +171,6 @@ export function AI() {
                 {msg.text}
               </div>
 
-              {/* Tombol Copy teks per bubble */}
               {msg.role === 'assistant' && (
                 <button
                   onClick={() => handleCopyText(msg.text, msg.id)}
@@ -198,7 +190,6 @@ export function AI() {
           </div>
         ))}
         
-        {/* Efek Loading saat Menunggu Balasan Suness */}
         {loading && (
           <div className="flex items-start gap-3 justify-start">
             <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
@@ -214,7 +205,7 @@ export function AI() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Quick Prompts Chips (Diam di bawah, tidak ikut scroll halaman) */}
+      {/* Quick Prompts Chips */}
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1 shrink-0 no-scrollbar">
         {QUICK_PROMPTS.map((prompt, index) => (
           <button
@@ -228,8 +219,8 @@ export function AI() {
         ))}
       </div>
 
-      {/* Input Formulir Pengiriman Pesan (Diam di bawah, tidak ikut scroll halaman) */}
-      <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="mt-2 mb-4 flex gap-2 shrink-0">
+      {/* Input Form */}
+      <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="mt-2 flex gap-2 shrink-0">
         <input
           type="text"
           value={input}
