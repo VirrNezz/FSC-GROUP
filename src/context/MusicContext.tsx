@@ -46,8 +46,25 @@ interface MusicContextType {
 const MusicContext = createContext<MusicContextType | null>(null);
 
 export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentSong, setCurrentSong] = useState<Song | null>(null);
-  const [queue, setQueue] = useState<Song[]>([]);
+  // Load lagu terakhir & queue dari localStorage saat pertama kali buka/refresh web
+  const [currentSong, setCurrentSong] = useState<Song | null>(() => {
+    try {
+      const saved = localStorage.getItem('fsc_current_song');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [queue, setQueue] = useState<Song[]>(() => {
+    try {
+      const saved = localStorage.getItem('fsc_queue');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -76,6 +93,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const playerRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
+  const isInitialized = useRef(false);
 
   const repeatModeRef = useRef(repeatMode);
   const queueRef = useRef(queue);
@@ -85,6 +103,27 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { currentSongRef.current = currentSong; }, [currentSong]);
 
+  // Simpan currentSong & queue ke localStorage setiap kali berubah
+  useEffect(() => {
+    try {
+      if (currentSong) {
+        localStorage.setItem('fsc_current_song', JSON.stringify(currentSong));
+      } else {
+        localStorage.removeItem('fsc_current_song');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [currentSong]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('fsc_queue', JSON.stringify(queue));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [queue]);
+
   // Load YouTube Iframe API
   useEffect(() => {
     if (!window.YT) {
@@ -93,6 +132,48 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
     }
+
+    // Jika habis direfresh dan sebelumnya ada lagu yang tersimpan, siapkan player YouTube-nya (paused di awal agar tidak auto-play berisik)
+    const checkYT = setInterval(() => {
+      if (window.YT && window.YT.Player && currentSong && !isInitialized.current) {
+        isInitialized.current = true;
+        clearInterval(checkYT);
+        
+        playerRef.current = new window.YT.Player('global-yt-player', {
+          height: '1',
+          width: '1',
+          videoId: currentSong.id,
+          playerVars: { 
+            autoplay: 0, 
+            controls: 0,
+            playsinline: 1 
+          },
+          events: {
+            onReady: (e: any) => {
+              e.target.setVolume(volume);
+            },
+            onStateChange: (e: any) => {
+              if (e.data === window.YT.PlayerState.PLAYING) {
+                setIsPlaying(true);
+                updateMediaSession();
+              } else if (e.data === window.YT.PlayerState.PAUSED) {
+                setIsPlaying(false);
+              } else if (e.data === window.YT.PlayerState.ENDED) {
+                if (repeatModeRef.current === 'song') {
+                  playerRef.current.seekTo(0, true);
+                  playerRef.current.playVideo();
+                  setIsPlaying(true);
+                } else {
+                  handleAutoNext();
+                }
+              }
+            }
+          }
+        });
+      }
+    }, 300);
+
+    return () => clearInterval(checkYT);
   }, []);
 
   // Fetch Firebase Playlists Realtime
@@ -190,7 +271,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setCurrentSong(nextSong);
       initPlayer(nextSong.id);
     } else {
-      // Jika sudah di lagu terakhir dalam queue/playlist
       if (repeatModeRef.current === 'playlist' && currentList.length > 0) {
         const firstSong = currentList[0];
         setCurrentSong(firstSong);
