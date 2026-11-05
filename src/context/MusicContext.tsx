@@ -27,6 +27,7 @@ interface MusicContextType {
   volume: number;
   repeatMode: 'off' | 'song' | 'playlist';
   playlists: Playlist[];
+  unlockedPlaylists: string[]; // <-- Tambahan state playlist yang terbuka
   playSong: (song: Song, songList?: Song[]) => void;
   togglePlay: () => void;
   toggleRepeat: () => void;
@@ -41,12 +42,13 @@ interface MusicContextType {
   playPlaylist: (playlist: Playlist) => void;
   removeSongFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
   showAlert: (message: string, type?: 'success' | 'error' | 'info') => void;
+  unlockPlaylist: (playlistId: string) => void; // <-- Fungsi unlock playlist
 }
 
 const MusicContext = createContext<MusicContextType | null>(null);
 
 export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load lagu terakhir & queue dari localStorage saat pertama kali buka/refresh web
+  // 1. Load lagu terakhir dari localStorage
   const [currentSong, setCurrentSong] = useState<Song | null>(() => {
     try {
       const saved = localStorage.getItem('fsc_current_song');
@@ -65,8 +67,27 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
+  // 2. Load detik lagu terakhir agar tidak mengulang dari 0
+  const [currentTime, setCurrentTime] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('fsc_current_time');
+      return saved ? parseFloat(saved) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  // 3. Load daftar ID playlist yang sudah di-unlock agar tidak terkunci kembali saat refresh
+  const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('fsc_unlocked_playlists');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(80);
   const [repeatMode, setRepeatMode] = useState<'off' | 'song' | 'playlist'>('off');
@@ -103,7 +124,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { currentSongRef.current = currentSong; }, [currentSong]);
 
-  // Simpan currentSong & queue ke localStorage setiap kali berubah
+  // Simpan data ke localStorage setiap kali berubah
   useEffect(() => {
     try {
       if (currentSong) {
@@ -124,6 +145,21 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [queue]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('fsc_unlocked_playlists', JSON.stringify(unlockedPlaylists));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [unlockedPlaylists]);
+
+  // Fungsi untuk meng-unlock playlist
+  const unlockPlaylist = (playlistId: string) => {
+    if (!unlockedPlaylists.includes(playlistId)) {
+      setUnlockedPlaylists(prev => [...prev, playlistId]);
+    }
+  };
+
   // Load YouTube Iframe API
   useEffect(() => {
     if (!window.YT) {
@@ -133,7 +169,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
     }
 
-    // Jika habis direfresh dan sebelumnya ada lagu yang tersimpan, siapkan player YouTube-nya (paused di awal agar tidak auto-play berisik)
     const checkYT = setInterval(() => {
       if (window.YT && window.YT.Player && currentSong && !isInitialized.current) {
         isInitialized.current = true;
@@ -146,7 +181,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           playerVars: { 
             autoplay: 0, 
             controls: 0,
-            playsinline: 1 
+            playsinline: 1,
+            start: Math.floor(currentTime) // Mulai dari detik terakhir sebelum di-refresh
           },
           events: {
             onReady: (e: any) => {
@@ -185,13 +221,17 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsub();
   }, []);
 
-  // Time Loop Update
+  // Time Loop Update & Simpan Detik Lagu Terakhir
   useEffect(() => {
     if (isPlaying) {
       timerRef.current = setInterval(() => {
         if (playerRef.current && playerRef.current.getCurrentTime) {
-          setCurrentTime(playerRef.current.getCurrentTime());
+          const t = playerRef.current.getCurrentTime();
+          setCurrentTime(t);
           setDuration(playerRef.current.getDuration() || 0);
+          try {
+            localStorage.setItem('fsc_current_time', t.toString());
+          } catch (e) {}
         }
       }, 500);
     } else {
@@ -217,9 +257,9 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const initPlayer = (videoId: string) => {
+  const initPlayer = (videoId: string, startTime: number = 0) => {
     if (playerRef.current && playerRef.current.loadVideoById) {
-      playerRef.current.loadVideoById(videoId);
+      playerRef.current.loadVideoById({ videoId, startSeconds: startTime });
       setIsPlaying(true);
       updateMediaSession();
     } else if (window.YT && window.YT.Player) {
@@ -230,7 +270,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         playerVars: { 
           autoplay: 1, 
           controls: 0,
-          playsinline: 1 
+          playsinline: 1,
+          start: Math.floor(startTime)
         },
         events: {
           onReady: (e: any) => {
@@ -269,12 +310,12 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (currentIndex !== -1 && currentIndex < currentList.length - 1) {
       const nextSong = currentList[currentIndex + 1];
       setCurrentSong(nextSong);
-      initPlayer(nextSong.id);
+      initPlayer(nextSong.id, 0);
     } else {
       if (repeatModeRef.current === 'playlist' && currentList.length > 0) {
         const firstSong = currentList[0];
         setCurrentSong(firstSong);
-        initPlayer(firstSong.id);
+        initPlayer(firstSong.id, 0);
       } else {
         setIsPlaying(false);
       }
@@ -286,7 +327,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (songList && songList.length > 0) {
       setQueue(songList);
     }
-    initPlayer(song.id);
+    initPlayer(song.id, 0);
   };
 
   const playNext = () => {
@@ -403,13 +444,13 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await updateDoc(doc(db, 'playlists', playlistId), {
       songs: updatedSongs
     });
-    showAlert('Lagu berhasil dihapus dari playlist!', 'success');
+    showAlert('Lagu berhasil dihapus dari playlist!', 'error');
   };
 
   return (
     <MusicContext.Provider value={{
-      currentSong, queue, isPlaying, currentTime, duration, volume, repeatMode, playlists,
-      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, playPlaylist, removeSongFromPlaylist, showAlert
+      currentSong, queue, isPlaying, currentTime, duration, volume, repeatMode, playlists, unlockedPlaylists,
+      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, playPlaylist, removeSongFromPlaylist, showAlert, unlockPlaylist
     }}>
       {children}
 
