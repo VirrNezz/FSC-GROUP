@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useMusic, type Playlist } from '../context/MusicContext';
+import { useMusic } from '../context/MusicContext';
+import type { Playlist } from '../context/MusicContext';
 import { Lock, Unlock, Play, Trash2, KeyRound } from 'lucide-react';
 
 export default function PlaylistSection() {
