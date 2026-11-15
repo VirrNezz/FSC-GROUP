@@ -17,6 +17,7 @@ export function Music() {
 
   const {
     currentSong, isPlaying, currentTime, duration, volume, repeatMode, playlists,
+    unlockedPlaylists, unlockPlaylist: contextUnlockPlaylist,
     playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, playPlaylist, removeSongFromPlaylist, showAlert
   } = useMusic();
 
@@ -34,7 +35,6 @@ export function Music() {
 
   // State Drawer & Form Playlist Baru
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
-  const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>([]);
   const [inputPassword, setInputPassword] = useState<{ [key: string]: string }>({});
 
   const [newPlName, setNewPlName] = useState('');
@@ -176,10 +176,10 @@ export function Music() {
     }
   };
 
-  const unlockPlaylist = (playlistId: string, pass: string) => {
+  const handleUnlockPlaylist = (playlistId: string, pass: string) => {
     const target = playlists.find(p => p.id === playlistId);
     if (target && target.password === pass) {
-      setUnlockedPlaylists(prev => [...prev, playlistId]);
+      contextUnlockPlaylist(playlistId); // Simpan permanen ke MusicContext & localStorage
       setInputPassword(prev => ({ ...prev, [playlistId]: '' }));
       showAlert("Playlist berhasil dibuka!", "success");
     } else {
@@ -613,7 +613,7 @@ export function Music() {
                               className="flex-1 bg-black/50 border border-white/10 px-2.5 py-1 rounded-xl text-xs text-white focus:outline-none"
                             />
                             <button
-                              onClick={() => unlockPlaylist(pl.id, inputPassword[pl.id])}
+                              onClick={() => handleUnlockPlaylist(pl.id, inputPassword[pl.id])}
                               className="px-3 py-1 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 rounded-xl text-xs font-bold"
                             >
                               Unlock
