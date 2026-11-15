@@ -447,10 +447,20 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showAlert('Lagu berhasil dihapus dari playlist!', 'error');
   };
 
+  // Otomatis ubah isLocked jadi false jika ID playlist sudah tersimpan di unlockedPlaylists (localStorage)
+  const syncedPlaylists = playlists.map(pl => ({
+    ...pl,
+    isLocked: unlockedPlaylists.includes(pl.id) ? false : pl.isLocked
+  }));
+
   return (
     <MusicContext.Provider value={{
-      currentSong, queue, isPlaying, currentTime, duration, volume, repeatMode, playlists, unlockedPlaylists,
-      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, playPlaylist, removeSongFromPlaylist, showAlert, unlockPlaylist
+      currentSong, queue, isPlaying, currentTime, duration, volume, repeatMode, 
+      playlists: syncedPlaylists, // Mengirim data playlist yang sudah otomatis terbuka kuncinya
+      unlockedPlaylists,
+      playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, 
+      setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, playPlaylist, 
+      removeSongFromPlaylist, showAlert, unlockPlaylist
     }}>
       {children}
 
