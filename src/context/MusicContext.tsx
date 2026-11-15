@@ -27,7 +27,7 @@ interface MusicContextType {
   volume: number;
   repeatMode: 'off' | 'song' | 'playlist';
   playlists: Playlist[];
-  unlockedPlaylists: string[]; // <-- Tambahan state playlist yang terbuka
+  unlockedPlaylists: string[]; // <-- State cache playlist yang terbuka
   playSong: (song: Song, songList?: Song[]) => void;
   togglePlay: () => void;
   toggleRepeat: () => void;
@@ -42,7 +42,7 @@ interface MusicContextType {
   playPlaylist: (playlist: Playlist) => void;
   removeSongFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
   showAlert: (message: string, type?: 'success' | 'error' | 'info') => void;
-  unlockPlaylist: (playlistId: string) => void; // <-- Fungsi unlock playlist
+  unlockPlaylist: (playlistId: string) => void;
 }
 
 const MusicContext = createContext<MusicContextType | null>(null);
@@ -77,7 +77,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  // 3. Load daftar ID playlist yang sudah di-unlock agar tidak terkunci kembali saat refresh
+  // 3. Load cache daftar ID playlist yang sudah di-unlock dari localStorage
   const [unlockedPlaylists, setUnlockedPlaylists] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('fsc_unlocked_playlists');
@@ -153,10 +153,14 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [unlockedPlaylists]);
 
-  // Fungsi untuk meng-unlock playlist
+  // Fungsi untuk meng-unlock playlist & langsung simpan ke cache
   const unlockPlaylist = (playlistId: string) => {
     if (!unlockedPlaylists.includes(playlistId)) {
-      setUnlockedPlaylists(prev => [...prev, playlistId]);
+      const updated = [...unlockedPlaylists, playlistId];
+      setUnlockedPlaylists(updated);
+      try {
+        localStorage.setItem('fsc_unlocked_playlists', JSON.stringify(updated));
+      } catch (e) {}
     }
   };
 
@@ -182,7 +186,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             autoplay: 0, 
             controls: 0,
             playsinline: 1,
-            start: Math.floor(currentTime) // Mulai dari detik terakhir sebelum di-refresh
+            start: Math.floor(currentTime)
           },
           events: {
             onReady: (e: any) => {
@@ -447,7 +451,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showAlert('Lagu berhasil dihapus dari playlist!', 'error');
   };
 
-  // Sinkronisasi otomatis: ubah isLocked jadi false jika ID playlist ada di unlockedPlaylists (localStorage)
+  // PENTING: Sinkronisasi otomatis agar playlist yang ID-nya ada di cache (localStorage) 
+  // langsung otomatis terbuka (isLocked = false) secara global tanpa menyenggol file UI!
   const syncedPlaylists = playlists.map(pl => ({
     ...pl,
     isLocked: unlockedPlaylists.includes(pl.id) ? false : pl.isLocked
@@ -456,7 +461,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <MusicContext.Provider value={{
       currentSong, queue, isPlaying, currentTime, duration, volume, repeatMode, 
-      playlists: syncedPlaylists, // Mengirim playlists yang otomatis terbuka jika sudah di-unlock
+      playlists: syncedPlaylists, // Mengirim data playlist yang sudah tersinkron cache
       unlockedPlaylists,
       playSong, togglePlay, toggleRepeat, playNext, playPrev, seekBy, handleSeekChange, 
       setVolumeLevel, createPlaylist, deletePlaylist, addSongToPlaylist, playPlaylist, 
