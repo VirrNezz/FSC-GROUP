@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useMusic } from '../context/MusicContext';
-import type { Playlist } from '../context/MusicContext';
 import { Lock, Unlock, Play, Trash2, KeyRound } from 'lucide-react';
+
+// Mengambil tipe Playlist langsung dari useMusic agar aman dari error build Vercel
+type Playlist = ReturnType<typeof useMusic>['playlists'][number];
 
 export default function PlaylistSection() {
   const {
@@ -17,12 +19,12 @@ export default function PlaylistSection() {
   const [passwordInput, setPasswordInput] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  // Handle klik playlist: cek apakah sudah terbuka di context/localStorage
+  // Handle klik playlist
   const handlePlaylistClick = (playlist: Playlist) => {
-    const isUnlocked = unlockedPlaylists.includes(playlist.id);
-
-    if (playlist.isLocked && !isUnlocked) {
-      // Jika masih terkunci dan belum di-unlock, tampilkan modal password
+    // Karena MusicContext sudah otomatis membuka kunci jika ada di unlockedPlaylists,
+    // kita cukup cek apakah playlist.isLocked masih true
+    if (playlist.isLocked) {
+      // Jika masih terkunci, tampilkan modal input password
       setSelectedPlaylist(playlist);
       setPasswordInput('');
       setShowPasswordModal(true);
@@ -56,9 +58,6 @@ export default function PlaylistSection() {
       {/* Grid List Playlist */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {playlists.map((playlist) => {
-          const isUnlocked = unlockedPlaylists.includes(playlist.id);
-          const isLockedNow = playlist.isLocked && !isUnlocked;
-
           return (
             <div
               key={playlist.id}
@@ -67,8 +66,8 @@ export default function PlaylistSection() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-white font-semibold text-sm truncate">{playlist.name}</h3>
-                  <span className={`p-1.5 rounded-xl text-xs flex items-center gap-1 ${isLockedNow ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
-                    {isLockedNow ? <Lock size={12} /> : <Unlock size={12} />}
+                  <span className={`p-1.5 rounded-xl text-xs flex items-center gap-1 ${playlist.isLocked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
+                    {playlist.isLocked ? <Lock size={12} /> : <Unlock size={12} />}
                   </span>
                 </div>
                 <p className="text-xs text-zinc-400 mb-4">
@@ -83,7 +82,7 @@ export default function PlaylistSection() {
                   className="flex-1 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-purple-600/30"
                 >
                   <Play size={12} />
-                  {isLockedNow ? 'Buka & Putar' : 'Putar Playlist'}
+                  {playlist.isLocked ? 'Buka & Putar' : 'Putar Playlist'}
                 </button>
 
                 <button
