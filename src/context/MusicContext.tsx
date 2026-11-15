@@ -2,8 +2,21 @@ import React, { useState } from 'react';
 import { useMusic } from '../context/MusicContext';
 import { Lock, Unlock, Play, Trash2, KeyRound } from 'lucide-react';
 
-// Mengambil tipe Playlist langsung dari useMusic agar aman dari error build Vercel
-type Playlist = ReturnType<typeof useMusic>['playlists'][number];
+// Definisikan interface lokal di sini agar aman dari error parse Rollup/Vercel
+interface Song {
+  id: string;
+  title: string;
+  artist: string;
+  cover: string;
+}
+
+interface Playlist {
+  id: string;
+  name: string;
+  isLocked: boolean;
+  password?: string;
+  songs: Song[];
+}
 
 export default function PlaylistSection() {
   const {
@@ -21,15 +34,11 @@ export default function PlaylistSection() {
 
   // Handle klik playlist
   const handlePlaylistClick = (playlist: Playlist) => {
-    // Karena MusicContext sudah otomatis membuka kunci jika ada di unlockedPlaylists,
-    // kita cukup cek apakah playlist.isLocked masih true
     if (playlist.isLocked) {
-      // Jika masih terkunci, tampilkan modal input password
       setSelectedPlaylist(playlist);
       setPasswordInput('');
       setShowPasswordModal(true);
     } else {
-      // Jika sudah terbuka, langsung putar
       playPlaylist(playlist);
     }
   };
@@ -40,7 +49,7 @@ export default function PlaylistSection() {
     if (!selectedPlaylist) return;
 
     if (passwordInput === selectedPlaylist.password) {
-      unlockPlaylist(selectedPlaylist.id); // Simpan permanen ke localStorage via context
+      unlockPlaylist(selectedPlaylist.id);
       showAlert(`Playlist "${selectedPlaylist.name}" berhasil dibuka!`, 'success');
       setShowPasswordModal(false);
       playPlaylist(selectedPlaylist);
@@ -57,7 +66,7 @@ export default function PlaylistSection() {
 
       {/* Grid List Playlist */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {playlists.map((playlist) => {
+        {playlists.map((playlist: any) => {
           return (
             <div
               key={playlist.id}
