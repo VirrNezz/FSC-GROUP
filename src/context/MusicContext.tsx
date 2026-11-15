@@ -2,38 +2,20 @@ import React, { useState } from 'react';
 import { useMusic } from '../context/MusicContext';
 import { Lock, Unlock, Play, Trash2, KeyRound } from 'lucide-react';
 
-// Definisikan interface lokal di sini agar aman dari error parse Rollup/Vercel
-interface Song {
-  id: string;
-  title: string;
-  artist: string;
-  cover: string;
-}
-
-interface Playlist {
-  id: string;
-  name: string;
-  isLocked: boolean;
-  password?: string;
-  songs: Song[];
-}
-
 export default function PlaylistSection() {
-  const {
-    playlists,
-    unlockedPlaylists,
-    unlockPlaylist,
-    playPlaylist,
-    deletePlaylist,
-    showAlert
-  } = useMusic();
+  const music = useMusic();
+  const playlists = music.playlists;
+  const unlockPlaylist = music.unlockPlaylist;
+  const playPlaylist = music.playPlaylist;
+  const deletePlaylist = music.deletePlaylist;
+  const showAlert = music.showAlert;
 
-  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<any>(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   // Handle klik playlist
-  const handlePlaylistClick = (playlist: Playlist) => {
+  const handlePlaylistClick = (playlist: any) => {
     if (playlist.isLocked) {
       setSelectedPlaylist(playlist);
       setPasswordInput('');
@@ -66,45 +48,43 @@ export default function PlaylistSection() {
 
       {/* Grid List Playlist */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {playlists.map((playlist: any) => {
-          return (
-            <div
-              key={playlist.id}
-              className="bg-zinc-900/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-lg hover:border-purple-500/40 transition-all"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-white font-semibold text-sm truncate">{playlist.name}</h3>
-                  <span className={`p-1.5 rounded-xl text-xs flex items-center gap-1 ${playlist.isLocked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
-                    {playlist.isLocked ? <Lock size={12} /> : <Unlock size={12} />}
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-400 mb-4">
-                  {playlist.songs?.length || 0} Lagu di dalam playlist
-                </p>
+        {playlists && playlists.map((playlist: any) => (
+          <div
+            key={playlist.id}
+            className="bg-zinc-900/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-lg hover:border-purple-500/40 transition-all"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-white font-semibold text-sm truncate">{playlist.name}</h3>
+                <span className={`p-1.5 rounded-xl text-xs flex items-center gap-1 ${playlist.isLocked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
+                  {playlist.isLocked ? <Lock size={12} /> : <Unlock size={12} />}
+                </span>
               </div>
-
-              {/* Tombol Aksi */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handlePlaylistClick(playlist)}
-                  className="flex-1 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-purple-600/30"
-                >
-                  <Play size={12} />
-                  {playlist.isLocked ? 'Buka & Putar' : 'Putar Playlist'}
-                </button>
-
-                <button
-                  onClick={() => deletePlaylist(playlist.id)}
-                  title="Hapus Playlist"
-                  className="bg-zinc-800 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-zinc-400 hover:text-red-400 p-2 rounded-xl transition-all"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
+              <p className="text-xs text-zinc-400 mb-4">
+                {playlist.songs?.length || 0} Lagu di dalam playlist
+              </p>
             </div>
-          );
-        })}
+
+            {/* Tombol Aksi */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePlaylistClick(playlist)}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-purple-600/30"
+              >
+                <Play size={12} />
+                {playlist.isLocked ? 'Buka & Putar' : 'Putar Playlist'}
+              </button>
+
+              <button
+                onClick={() => deletePlaylist(playlist.id)}
+                title="Hapus Playlist"
+                className="bg-zinc-800 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-zinc-400 hover:text-red-400 p-2 rounded-xl transition-all"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Modal Popup Password */}
